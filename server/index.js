@@ -1,6 +1,7 @@
 import express from 'express';
 import { db, save, id } from './db.js';
 import { runAgent, resolvePending } from './agent.js';
+import { authUrl, exchangeCode, googleConfigured, gmailConnected } from './google.js';
 
 export const app = express();
 app.use(express.json());
@@ -12,10 +13,25 @@ app.post('/api/chat', async (req, res) => {
   try { res.json(await runAgent(String(req.body.message || ''))); }
   catch (e) { console.error(e); res.status(500).json({ error: 'agent failed: ' + e.message }); }
 });
-app.post('/api/confirm/:id', (req, res) => res.json(resolvePending(req.params.id, !!req.body.approve)));
+app.post('/api/confirm/:id', async (req, res) => res.json(await resolvePending(req.params.id, !!req.body.approve)));
 app.get('/api/state', (_, res) => res.json({ reminders: db.reminders, tasks: db.tasks, bookings: db.bookings, pending: db.pending }));
 app.post('/api/memory', (req, res) => { db.memory = String(req.body.memory || ''); save(); res.json({ ok: true }); });
 app.get('/api/notifications', (_, res) => { const n = db.notifications; db.notifications = []; save(); res.json(n); });
+
+// ---- Gmail connect (open /auth/google?token=APP_TOKEN in a browser once) ----
+app.get('/auth/google', (req, res) => {
+  if (req.query.token !== TOKEN) return res.status(401).send('bad token');
+  if (!googleConfigured()) return res.status(500).send('Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET first');
+  res.redirect(authUrl(TOKEN.length + ':' + Buffer.from(TOKEN).toString('base64url')));
+});
+app.get('/auth/google/callback', async (req, res) => {
+  try {
+    if (req.query.state !== TOKEN.length + ':' + Buffer.from(TOKEN).toString('base64url')) return res.status(400).send('bad state');
+    const refresh = await exchangeCode(String(req.query.code));
+    res.send(`<h3>Gmail connected</h3><p>To keep it after server restarts (Render free resets files), add this as env var <b>GOOGLE_REFRESH_TOKEN</b> in Render:</p><textarea rows=4 cols=60 readonly>${refresh}</textarea>`);
+  } catch (e) { res.status(500).send('failed: ' + e.message); }
+});
+app.get('/api/status', (_, res) => res.json({ gmail: gmailConnected(), search: process.env.TAVILY_API_KEY ? 'tavily' : 'duckduckgo' }));
 
 // ---- proactive layer ----
 export function tickReminders(now = Date.now()) {
