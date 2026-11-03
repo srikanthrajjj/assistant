@@ -1,5 +1,5 @@
 <resources>
-    <color name="surface">#0E0F12</color>
+    <color name="surface">#070B16</color>
     <style name="AppTheme" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/surface</item>
         <item name="android:statusBarColor">@color/surface</item>
