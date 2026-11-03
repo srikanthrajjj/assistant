@@ -1,42 +1,185 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>Assistant</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#111827">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#4f46e5">
 <style>
-:root{--bg:#fff;--fg:#111827;--card:#f3f4f6;--me:#2563eb}
-@media(prefers-color-scheme:dark){:root{--bg:#0b1020;--fg:#e5e7eb;--card:#1f2937}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui;display:flex;flex-direction:column;height:100dvh}
-header{padding:12px 16px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
-header button{background:none;border:0;color:inherit;font-size:14px;opacity:.7}
-#log{flex:1;overflow:auto;padding:0 16px}
-.m{max-width:85%;margin:8px 0;padding:10px 12px;border-radius:14px;background:var(--card);white-space:pre-wrap}
-.me{margin-left:auto;background:var(--me);color:#fff}
-.act{display:flex;gap:8px;margin-top:8px}.act button{padding:8px 14px;border-radius:10px;border:0;font-size:15px}
-.ok{background:#16a34a;color:#fff}.no{background:#9ca3af;color:#fff}
-form{display:flex;gap:8px;padding:12px 16px}input{flex:1;padding:12px;border-radius:12px;border:1px solid #9ca3af;background:var(--bg);color:var(--fg);font-size:16px}
-form button{padding:0 18px;border:0;border-radius:12px;background:var(--me);color:#fff;font-size:16px}
+:root{--bg:#f4f5fb;--card:#fff;--fg:#14162b;--mute:#6b7090;--line:#e6e8f2;--brand:#4f46e5;--brand2:#7c3aed;--me:#4f46e5;--bot:#fff;--ok:#16a34a;--warn:#f59e0b;--shadow:0 1px 2px rgba(20,22,43,.05),0 6px 18px rgba(20,22,43,.06)}
+@media(prefers-color-scheme:dark){:root{--bg:#0d0f1c;--card:#171a2e;--fg:#eceefb;--mute:#8d92b5;--line:#262a45;--bot:#1d2139;--shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25)}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 16px 0}
+.top{display:flex;align-items:center;justify-content:space-between;padding-bottom:8px}
+.title{font-weight:700;font-size:18px;letter-spacing:.2px}
+.gear{background:rgba(255,255,255,.18);border:0;color:#fff;width:34px;height:34px;border-radius:50%;font-size:16px}
+nav{display:flex;gap:4px}
+nav button{flex:1;background:none;border:0;color:rgba(255,255,255,.7);padding:10px 0 12px;font:600 14px inherit;font-family:inherit;display:flex;gap:6px;align-items:center;justify-content:center;border-bottom:3px solid transparent}
+nav button.on{color:#fff;border-bottom-color:#fff}
+nav svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+main{flex:1;min-height:0;position:relative}
+section{position:absolute;inset:0;display:none;flex-direction:column}section.on{display:flex}
+#home{overflow:auto;padding:16px 14px calc(env(safe-area-inset-bottom) + 24px)}
+.hello{font-size:24px;font-weight:700;margin:2px 4px 2px}.date{color:var(--mute);margin:0 4px 14px}
+.grid{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:720px){.grid{grid-template-columns:1fr 1fr}}
+.card{background:var(--card);border-radius:18px;padding:14px 14px 12px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 10px;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--mute);display:flex;justify-content:space-between;align-items:center}
+.wide{grid-column:1/-1}
+.weather{display:flex;align-items:center;gap:14px}.wx{font-size:44px;line-height:1}.temp{font-size:34px;font-weight:700}.sub{color:var(--mute);font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{background:var(--bg);border:1px solid var(--line);color:var(--fg);border-radius:999px;padding:8px 13px;font:500 13px inherit;font-family:inherit}
+.chip:active{transform:scale(.97)}
+.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}.row:first-of-type{border-top:0}
+.row .grow{flex:1;min-width:0}.row .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row .s{color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.check{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:none;flex:none}.check:active{background:var(--ok);border-color:var(--ok)}
+.x{background:none;border:0;color:var(--mute);font-size:18px;padding:2px 6px}
+.empty{color:var(--mute);font-size:13px;padding:6px 0}
+.add{display:flex;gap:8px;margin-top:8px}.add input{flex:1;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:12px;padding:10px 12px;font-size:15px;min-width:0}
+.btn{background:var(--brand);color:#fff;border:0;border-radius:12px;padding:10px 14px;font:600 14px inherit;font-family:inherit}.btn.ghost{background:var(--bg);color:var(--fg);border:1px solid var(--line)}.btn.ok{background:var(--ok)}
+.big{font-size:28px;font-weight:700}.pill{font-size:11px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--mute)}
+.skeleton{height:14px;border-radius:7px;background:linear-gradient(90deg,var(--line),transparent,var(--line));background-size:200% 100%;animation:sh 1.2s infinite}@keyframes sh{to{background-position:-200% 0}}
+/* chat */
+#log{flex:1;overflow:auto;padding:14px 14px 6px;display:flex;flex-direction:column;gap:8px}
+.m{max-width:84%;padding:10px 13px;border-radius:18px;white-space:pre-wrap;word-wrap:break-word;background:var(--bot);box-shadow:var(--shadow);border-bottom-left-radius:6px}
+.m.me{align-self:flex-end;background:var(--me);color:#fff;border-bottom-left-radius:18px;border-bottom-right-radius:6px;box-shadow:none}
+.m.sys{align-self:center;background:none;box-shadow:none;color:var(--mute);font-size:13px}
+.m a{color:inherit;text-decoration:underline}
+.typing span{display:inline-block;width:7px;height:7px;margin:0 2px;border-radius:50%;background:var(--mute);animation:b 1s infinite}.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}@keyframes b{50%{transform:translateY(-4px);opacity:.5}}
+.act{display:flex;gap:8px;margin-top:8px}
+form{display:flex;gap:8px;padding:10px 12px calc(env(safe-area-inset-bottom) + 10px);background:var(--bg);border-top:1px solid var(--line)}
+form input{flex:1;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:22px;padding:12px 16px;font-size:16px;min-width:0}
+form button{width:46px;height:46px;border-radius:50%;border:0;background:var(--brand);color:#fff;flex:none;display:flex;align-items:center;justify-content:center}
+form svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 </style></head><body>
-<header>Assistant <button id="set">token</button></header>
-<div id="log"></div>
-<form id="f"><input id="q" placeholder="Remind me, check email, book a ticket…" autocomplete="off"><button>Send</button></form>
+<header>
+  <div class="top"><div class="title">Assistant</div><button class="gear" id="gear" title="Settings">⚙</button></div>
+  <nav>
+    <button id="t-home" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>Home</button>
+    <button id="t-chat"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>Chat</button>
+  </nav>
+</header>
+<main>
+  <section id="home" class="on">
+    <div class="hello" id="hello">Hello</div><div class="date" id="date"></div>
+    <div class="grid">
+      <div class="card wide"><h3>Quick actions</h3><div class="chips" id="chips"></div></div>
+      <div class="card" id="w-weather"><h3>Weather <button class="x" id="wx-city" title="Change city" style="font-size:13px">📍 set city</button></h3><div id="wx"><div class="skeleton" style="width:60%"></div></div></div>
+      <div class="card" id="w-brief"><h3>Daily briefing</h3><div class="sub" style="margin-bottom:10px">Tasks, reminders, unread mail and charges due, summed up by your assistant.</div><button class="btn" id="brief">Brief me</button></div>
+      <div class="card"><h3>Tasks <span class="pill" id="n-tasks">0</span></h3><div id="tasks"></div><form class="add" id="addform" style="padding:0;border:0;background:none"><input id="newtask" placeholder="Add a task…" autocomplete="off"><button class="btn" style="width:auto;height:auto;border-radius:12px">Add</button></form></div>
+      <div class="card"><h3>Reminders <span class="pill" id="n-rem">0</span></h3><div id="rems"></div></div>
+      <div class="card"><h3>Inbox <span class="pill">unread</span></h3><div id="inbox"><div class="skeleton" style="width:80%"></div></div></div>
+      <div class="card"><h3>Subscriptions</h3><div id="subs"></div></div>
+      <div class="card wide" id="w-pending" style="display:none"><h3>Waiting for your OK</h3><div id="pending"></div></div>
+    </div>
+  </section>
+  <section id="chat">
+    <div id="log"></div>
+    <form id="f"><input id="q" placeholder="Ask anything…" autocomplete="off"><button aria-label="Send"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></form>
+  </section>
+</main>
 <script>
-const hp=new URLSearchParams(location.hash.slice(1));const ht=hp.get('t');if(ht)localStorage.tok=ht;
-let tok=localStorage.tok||prompt('App token')||'dev-token';localStorage.tok=tok;
-set.onclick=()=>{tok=prompt('App token',tok)||tok;localStorage.tok=tok};
-const api=(p,b)=>fetch('/api/'+p,{method:b?'POST':'GET',headers:{'content-type':'application/json',authorization:'Bearer '+tok},body:b&&JSON.stringify(b)}).then(r=>r.json());
-const esc=t=>t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const $=s=>document.querySelector(s);
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hp=new URLSearchParams(location.hash.slice(1));const ht=hp.get('t');if(ht)try{localStorage.tok=ht}catch{}
+let tok;try{tok=localStorage.tok}catch{}
+async function api(p,body,method){
+  const go=()=>fetch('/api/'+p,{method:method||(body?'POST':'GET'),headers:{'content-type':'application/json',authorization:'Bearer '+tok},body:body?JSON.stringify(body):undefined});
+  let r=await go();
+  if(r.status===401){const t=prompt('Enter your app token');if(t){tok=t;try{localStorage.tok=t}catch{}r=await go()}}
+  return r.json();
+}
+$('#gear').onclick=()=>{const t=prompt('App token',tok||'');if(t){tok=t;try{localStorage.tok=t}catch{}load()}};
+
+/* tabs */
+function tab(n){for(const x of['home','chat']){$('#t-'+x).classList.toggle('on',x===n);$('#'+x).classList.toggle('on',x===n)}
+  try{localStorage.tab=n}catch{} if(n==='home')load(); else{log.scrollTop=1e9;q.focus({preventScroll:true})}}
+$('#t-home').onclick=()=>tab('home');$('#t-chat').onclick=()=>tab('chat');
+
+/* chat */
+const log=$('#log'),q=$('#q');
 const fill=(d,t)=>{let h=esc(t).replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2">$1</a>');
- h=h.replace(/(^|[\s(])(https?:\/\/[^\s<)\]]+?)([.,;:!?]*)(?=$|[\s<)])/g,'$1<a href="$2">$2</a>$3');
- d.innerHTML=h.replace(/<a /g,'<a style="color:inherit;text-decoration:underline" ')};
+ h=h.replace(/(^|[\s(])(https?:\/\/[^\s<)\]]+?)([.,;:!?]*)(?=$|[\s<)])/g,'$1<a href="$2">$2</a>$3');d.innerHTML=h};
 const add=(t,c='')=>{const d=document.createElement('div');d.className='m '+c;fill(d,t);log.appendChild(d);log.scrollTop=1e9;return d};
-f.onsubmit=async e=>{e.preventDefault();const t=q.value.trim();if(!t)return;q.value='';add(t,'me');const w=add('…');
- const r=await api('chat',{message:t});fill(w,r.reply||r.error||'(no reply)');
- for(const p of r.pending||[]){const d=add(`Confirm: ${p.tool} ${JSON.stringify(p.input)}`);const a=document.createElement('div');a.className='act';
-  for(const [l,ap,c] of [['Confirm',true,'ok'],['Cancel',false,'no']]){const b=document.createElement('button');b.textContent=l;b.className=c;
-   b.onclick=async()=>{a.remove();const x=await api('confirm/'+p.id,{approve:ap});add(ap?'Done: '+JSON.stringify(x.result):'Cancelled')};a.appendChild(b)}d.appendChild(a)}};
-async function poll(){try{const n=await api('notifications');for(const x of n){add(x.title+': '+x.body);
- try{if(!hp.get('app')&&Notification.permission==='granted')new Notification(x.title,{body:x.body})}catch{}}}catch{}}
-try{if(!hp.get('app')&&'Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch{}
-setInterval(poll,15000);poll();
+function pendingCard(p,host){
+  const d=host||add('');if(!host)d.textContent='';
+  d.insertAdjacentHTML('beforeend',`<div><b>Confirm:</b> ${esc(p.tool)} ${esc(JSON.stringify(p.input))}</div>`);
+  const a=document.createElement('div');a.className='act';
+  for(const[l,ap,c]of[['Confirm',true,'ok'],['Cancel',false,'ghost']]){const b=document.createElement('button');b.className='btn '+c;b.textContent=l;
+    b.onclick=async()=>{a.remove();const x=await api('confirm/'+p.id,{approve:ap});add(ap?'Done: '+JSON.stringify(x.result):'Cancelled','sys');load()};a.appendChild(b)}
+  d.appendChild(a);
+}
+let busy=false;
+async function ask(t){
+  if(busy||!t.trim())return;busy=true;tab('chat');add(t,'me');
+  const w=add('','');w.innerHTML='<span class="typing"><span></span><span></span><span></span></span>';
+  try{const r=await api('chat',{message:t});fill(w,r.reply||r.error||'(no reply)');for(const p of r.pending||[])pendingCard(p)}
+  catch(e){fill(w,'Network error, try again.')}
+  busy=false;load();
+}
+$('#f').onsubmit=e=>{e.preventDefault();const t=q.value;q.value='';ask(t)};
+
+/* home */
+const chips=[['📅 Plan my day','Plan my day using my tasks, reminders and emails'],['✉️ Check email','What is new in my email that needs attention?'],['🔁 Find subscriptions','Find my subscriptions and what they cost'],['🔎 Research…','Research this for me and cite sources: '],['⏰ Remind me…','Remind me '],['🧳 Book a ticket','Search tickets BLR to DEL']];
+$('#chips').innerHTML=chips.map((c,i)=>`<button class="chip" data-i="${i}">${c[0]}</button>`).join('');
+$('#chips').onclick=e=>{const i=e.target.dataset.i;if(i==null)return;const t=chips[i][1];if(t.endsWith(': ')||t==='Remind me '){tab('chat');q.value=t;q.focus()}else ask(t)};
+$('#brief').onclick=()=>ask('Give me my morning briefing: weather-independent. Summarise my open tasks, upcoming reminders, unread email and any subscription charges due soon, then tell me the top 3 things to do today.');
+const hr=new Date().getHours();$('#hello').textContent=(hr<12?'Good morning':hr<18?'Good afternoon':'Good evening');
+$('#date').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
+const rel=iso=>{const m=Math.round((new Date(iso)-Date.now())/60000);if(m<-1)return 'overdue';if(m<1)return 'now';if(m<60)return 'in '+m+' min';if(m<1440)return 'in '+Math.round(m/60)+' h';return new Date(iso).toLocaleDateString(undefined,{day:'numeric',month:'short'})+' '+new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})};
+async function load(){
+  let h;try{h=await api('home')}catch{return}
+  if(!h||h.error)return;
+  $('#n-tasks').textContent=h.tasks.length;$('#n-rem').textContent=h.reminders.length;
+  $('#tasks').innerHTML=h.tasks.length?h.tasks.slice(0,8).map(t=>`<div class="row"><button class="check" data-task="${esc(t.id)}" aria-label="Done"></button><div class="grow"><div class="t">${esc(t.title)}</div>${t.due?`<div class="s">due ${esc(t.due)}</div>`:''}</div></div>`).join(''):'<div class="empty">Nothing to do. Nice.</div>';
+  $('#rems').innerHTML=h.reminders.length?h.reminders.map(r=>`<div class="row"><div class="grow"><div class="t">${esc(r.text)}</div><div class="s">${esc(rel(r.when))}</div></div><button class="x" data-rem="${esc(r.id)}" aria-label="Dismiss">✕</button></div>`).join(''):'<div class="empty">No reminders. Ask me to set one.</div>';
+  const subs=(h.subscriptions||[]).slice().sort((a,b)=>String(a.next_charge||'z').localeCompare(String(b.next_charge||'z')));
+  const cur=(subs.find(s=>s.currency)||{}).currency||'';
+  $('#subs').innerHTML=subs.length?`<div class="big">${esc(cur)} ${h.monthly}<span class="sub"> / month</span></div>`+subs.slice(0,4).map(s=>`<div class="row"><div class="grow"><div class="t">${esc(s.name)}</div><div class="s">${s.next_charge?'next '+esc(s.next_charge):esc(s.period||'')}</div></div><div>${s.amount?esc(s.currency||cur)+' '+esc(s.amount):''}</div></div>`).join(''):`<div class="empty">No subscriptions saved yet.</div><button class="btn ghost" id="scan">Scan my email</button>`;
+  const sc=$('#scan');if(sc)sc.onclick=()=>ask('Find my subscriptions and what they cost');
+  $('#w-pending').style.display=h.pending.length?'':'none';$('#pending').innerHTML='';
+  for(const p of h.pending){const d=document.createElement('div');d.className='row';d.style.display='block';$('#pending').appendChild(d);pendingCard(p,d)}
+  loadInbox(h.gmail);
+}
+async function loadInbox(connected){
+  const box=$('#inbox');
+  if(!connected){box.innerHTML='<div class="empty">Gmail is not connected.</div><button class="btn" id="cg">Connect Gmail</button>';$('#cg').onclick=()=>ask('connect gmail');return}
+  const r=await api('inbox');
+  if(r.error){box.innerHTML=`<div class="empty">${esc(r.error)}</div><button class="btn ghost" id="cg">Reconnect Gmail</button>`;$('#cg').onclick=()=>ask('connect gmail');return}
+  box.innerHTML=(r.items||[]).length?r.items.map(m=>`<div class="row"><div class="grow"><div class="t">${esc(m.subject||'(no subject)')}</div><div class="s">${esc((m.from||'').replace(/<.*>/,'').trim())}</div></div></div>`).join(''):'<div class="empty">Inbox zero. Enjoy.</div>';
+}
+document.addEventListener('click',async e=>{
+  const t=e.target.dataset;
+  if(t.task){await api('tasks/'+t.task+'/done',{});load()}
+  if(t.rem){await api('reminders/'+t.rem+'/done',{});load()}
+});
+$('#addform').onsubmit=async e=>{e.preventDefault();const i=$('#newtask');const v=i.value.trim();if(!v)return;i.value='';await api('tasks',{title:v});load()};
+
+/* weather: Open-Meteo, free, no key */
+const WX={0:['☀️','Clear'],1:['🌤️','Mostly clear'],2:['⛅','Partly cloudy'],3:['☁️','Cloudy'],45:['🌫️','Fog'],48:['🌫️','Fog'],51:['🌦️','Drizzle'],53:['🌦️','Drizzle'],55:['🌦️','Drizzle'],61:['🌧️','Rain'],63:['🌧️','Rain'],65:['🌧️','Heavy rain'],71:['🌨️','Snow'],73:['🌨️','Snow'],75:['🌨️','Snow'],80:['🌦️','Showers'],81:['🌧️','Showers'],82:['⛈️','Heavy showers'],95:['⛈️','Thunderstorm'],96:['⛈️','Thunderstorm'],99:['⛈️','Thunderstorm']};
+async function weather(){
+  let c;try{c=JSON.parse(localStorage.city||'null')}catch{}
+  const box=$('#wx');
+  if(!c){box.innerHTML='<div class="empty">Set your city to see the weather.</div>';return}
+  try{
+    const r=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`)).json();
+    const w=WX[r.current.weather_code]||['🌡️','—'];
+    box.innerHTML=`<div class="weather"><div class="wx">${w[0]}</div><div><div class="temp">${Math.round(r.current.temperature_2m)}°</div><div class="sub">${esc(w[1])} · ${esc(c.name)}</div><div class="sub">H ${Math.round(r.daily.temperature_2m_max[0])}° · L ${Math.round(r.daily.temperature_2m_min[0])}°</div></div></div>`;
+  }catch{box.innerHTML='<div class="empty">Weather unavailable right now.</div>'}
+}
+$('#wx-city').onclick=async()=>{
+  const n=prompt('Your city');if(!n)return;
+  try{const g=await(await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name='+encodeURIComponent(n))).json();
+    if(!g.results||!g.results[0]){alert('City not found');return}
+    const x=g.results[0];localStorage.city=JSON.stringify({name:x.name,lat:x.latitude,lon:x.longitude});weather()}catch{alert('Could not look up the city')}
+};
+
+/* boot */
+(async()=>{
+  try{const h=await api('history');for(const m of h||[])add(m.content,m.role==='user'?'me':'')}catch{}
+  if(!log.children.length)add('Hi! I can set reminders, manage tasks, research the web, read your email and find subscriptions. Try a quick action on Home.','sys');
+  let t='home';try{t=localStorage.tab||'home'}catch{}tab(t);weather();
+  setInterval(()=>{if($('#home').classList.contains('on'))load()},30000);
+  setInterval(async()=>{try{const n=await api('notifications');for(const x of n||[]){add(x.title+': '+x.body,'sys');
+    try{if(!hp.get('app')&&'Notification' in window&&Notification.permission==='granted')new Notification(x.title,{body:x.body})}catch{}}
+    if(n&&n.length)load()}catch{}},15000);
+  try{if(!hp.get('app')&&'Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch{}
+})();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
 </script></body></html>

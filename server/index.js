@@ -1,7 +1,7 @@
 import express from 'express';
 import { db, save, id, connect } from './db.js';
 import { runAgent, resolvePending } from './agent.js';
-import { authUrl, exchangeCode, googleConfigured, gmailConnected, takeNonce, newState, takeState } from './google.js';
+import { authUrl, exchangeCode, googleConfigured, gmailConnected, takeNonce, newState, takeState, searchEmails } from './google.js';
 
 export const app = express();
 app.use(express.json());
@@ -16,6 +16,31 @@ app.post('/api/chat', async (req, res) => {
 });
 app.post('/api/confirm/:id', async (req, res) => res.json(await resolvePending(req.params.id, !!req.body.approve)));
 app.get('/api/state', (_, res) => res.json({ reminders: db.reminders, tasks: db.tasks, bookings: db.bookings, pending: db.pending }));
+// ---- data for the Home widgets ----
+app.get('/api/home', (_, res) => {
+  const subs = db.subscriptions || [];
+  const monthly = subs.reduce((a, x) => a + (x.amount ? (x.period === 'yearly' ? x.amount / 12 : x.amount) : 0), 0);
+  res.json({
+    tasks: db.tasks.filter(t => !t.done),
+    reminders: db.reminders.filter(r => !r.done).sort((a, b) => new Date(a.when) - new Date(b.when)).slice(0, 8),
+    subscriptions: subs, monthly: Math.round(monthly * 100) / 100,
+    gmail: gmailConnected(), pending: db.pending,
+  });
+});
+let inboxCache = { at: 0, data: null };
+app.get('/api/inbox', async (_, res) => {
+  if (!gmailConnected()) return res.json({ connected: false });
+  try {
+    if (!inboxCache.data || Date.now() - inboxCache.at > 120000)
+      inboxCache = { at: Date.now(), data: await searchEmails('is:unread newer_than:3d -category:promotions -category:social -category:forums', 6) };
+    res.json({ connected: true, items: inboxCache.data.map(m => ({ id: m.id, from: m.from, subject: m.subject, snippet: m.snippet })) });
+  } catch (e) { res.json({ connected: true, error: e.message }); }
+});
+app.post('/api/tasks', (req, res) => { const title = String(req.body.title || '').trim().slice(0, 200); if (!title) return res.status(400).json({ error: 'title required' });
+  const t = { id: id(), title, due: null, done: false }; db.tasks.push(t); save(); res.json(t); });
+app.post('/api/tasks/:id/done', (req, res) => { const t = db.tasks.find(x => x.id === req.params.id); if (!t) return res.status(404).json({ error: 'not found' }); t.done = true; save(); res.json(t); });
+app.post('/api/reminders/:id/done', (req, res) => { const r = db.reminders.find(x => x.id === req.params.id); if (!r) return res.status(404).json({ error: 'not found' }); r.done = true; save(); res.json(r); });
+app.get('/api/history', (_, res) => res.json(db.history.slice(-40)));
 app.post('/api/memory', (req, res) => { db.memory = String(req.body.memory || ''); save(); res.json({ ok: true }); });
 app.get('/api/notifications', async (req, res) => {   // ?wait=25 = long-poll: returns as soon as something is due
   const wait = Math.min(Number(req.query.wait) || 0, 30); let closed = false; req.on('close', () => (closed = true));
