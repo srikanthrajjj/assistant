@@ -17,12 +17,20 @@ class MainActivity : Activity() {
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
         requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
-        web = WebView(this).also { it.settings.javaScriptEnabled = true; it.settings.domStorageEnabled = true; it.webViewClient = WebViewClient(); it.webChromeClient = android.webkit.WebChromeClient() }
+        web = WebView(this).also { it.settings.javaScriptEnabled = true; it.settings.domStorageEnabled = true; it.webViewClient = object : WebViewClient() {
+            // Google blocks OAuth inside WebViews, so auth and any external link open in the real browser
+            override fun shouldOverrideUrlLoading(v: WebView, r: android.webkit.WebResourceRequest): Boolean {
+                val u = r.url.toString()
+                val ours = u.startsWith(Config.url(this@MainActivity)) && !u.contains("/auth/")
+                if (ours) return false
+                startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, r.url)); return true
+            }
+        }; it.webChromeClient = android.webkit.WebChromeClient() }
         setContentView(web)
         if (Config.url(this).isEmpty() || Config.token(this).isEmpty()) askServer() else start()
     }
     private fun start() {
-        web.loadUrl(Config.url(this) + "#t=" + Uri.encode(Config.token(this)))
+        web.loadUrl(Config.url(this) + "#app=1&t=" + Uri.encode(Config.token(this)))
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "poll", ExistingPeriodicWorkPolicy.REPLACE, PeriodicWorkRequestBuilder<PollWorker>(15, TimeUnit.MINUTES).build())
     }

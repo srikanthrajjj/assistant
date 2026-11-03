@@ -20,19 +20,21 @@ form button{padding:0 18px;border:0;border-radius:12px;background:var(--me);colo
 <div id="log"></div>
 <form id="f"><input id="q" placeholder="Remind me, check email, book a ticket…" autocomplete="off"><button>Send</button></form>
 <script>
-const ht=new URLSearchParams(location.hash.slice(1)).get('t');if(ht)localStorage.tok=ht;
+const hp=new URLSearchParams(location.hash.slice(1));const ht=hp.get('t');if(ht)localStorage.tok=ht;
 let tok=localStorage.tok||prompt('App token')||'dev-token';localStorage.tok=tok;
 set.onclick=()=>{tok=prompt('App token',tok)||tok;localStorage.tok=tok};
 const api=(p,b)=>fetch('/api/'+p,{method:b?'POST':'GET',headers:{'content-type':'application/json',authorization:'Bearer '+tok},body:b&&JSON.stringify(b)}).then(r=>r.json());
-const add=(t,c='')=>{const d=document.createElement('div');d.className='m '+c;d.textContent=t;log.appendChild(d);log.scrollTop=1e9;return d};
+const esc=t=>t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const fill=(d,t)=>{d.innerHTML=esc(t).replace(/(https?:\/\/[^\s<)]+)/g,'<a href="$1" style="color:inherit;text-decoration:underline">$1</a>')};
+const add=(t,c='')=>{const d=document.createElement('div');d.className='m '+c;fill(d,t);log.appendChild(d);log.scrollTop=1e9;return d};
 f.onsubmit=async e=>{e.preventDefault();const t=q.value.trim();if(!t)return;q.value='';add(t,'me');const w=add('…');
- const r=await api('chat',{message:t});w.textContent=r.reply||r.error||'(no reply)';
+ const r=await api('chat',{message:t});fill(w,r.reply||r.error||'(no reply)');
  for(const p of r.pending||[]){const d=add(`Confirm: ${p.tool} ${JSON.stringify(p.input)}`);const a=document.createElement('div');a.className='act';
   for(const [l,ap,c] of [['Confirm',true,'ok'],['Cancel',false,'no']]){const b=document.createElement('button');b.textContent=l;b.className=c;
    b.onclick=async()=>{a.remove();const x=await api('confirm/'+p.id,{approve:ap});add(ap?'Done: '+JSON.stringify(x.result):'Cancelled')};a.appendChild(b)}d.appendChild(a)}};
 async function poll(){try{const n=await api('notifications');for(const x of n){add(x.title+': '+x.body);
- if(Notification.permission==='granted')new Notification(x.title,{body:x.body})}}catch{}}
-if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
+ try{if(!hp.get('app')&&Notification.permission==='granted')new Notification(x.title,{body:x.body})}catch{}}}catch{}}
+try{if(!hp.get('app')&&'Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch{}
 setInterval(poll,15000);poll();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
 </script></body></html>
