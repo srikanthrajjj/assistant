@@ -5,6 +5,9 @@ Agent loop + tools (reminders, tasks, email, tickets, web search) + proactive re
     ANTHROPIC_API_KEY=sk-... APP_TOKEN=choose-a-secret npm start      # http://localhost:3000
 Open on your phone (same Wi-Fi or deploy to Cloud Run/Render) -> "Add to Home screen" = installable app.
 `npm test` runs the full loop offline with a fake LLM (no key needed).
+## LLM provider
+Anthropic: set ANTHROPIC_API_KEY. Haimaker or any OpenAI-compatible gateway: set LLM_BASE_URL (ending in /v1), LLM_API_KEY, LLM_MODEL.
+
 ## Mock vs real
 Email + tickets are MOCKS (server/tools.js). Reminders, tasks, web search (Anthropic server tool), confirm-before-booking, notifications are real.
 ## Next: Gmail OAuth (replace search_emails), real ticket API, FCM push, per-user auth.
