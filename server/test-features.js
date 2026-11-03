@@ -23,4 +23,11 @@ const { byName } = await import('./tools.js');
 const found = await byName.find_subscriptions.run({});
 assert.equal(found.data[0].from, 'Netflix');
 assert.ok((await byName.read_email.run({ id: 'g1' })).data.body.includes('Rs 649'));
+const c = await byName.connect_gmail.run({});
+assert.equal(c.connected, true);                       // refresh token set in this test
+delete process.env.GOOGLE_REFRESH_TOKEN; const { db } = await import('./db.js'); db.google = null;
+const c2 = await byName.connect_gmail.run({});
+assert.match(c2.link, /\/auth\/google\?n=/);
+const G = await import('./google.js'); const n = new URL(c2.link).searchParams.get('n');
+assert.equal(G.takeNonce(n), true); assert.equal(G.takeNonce(n), false, 'nonce is one-time');
 console.log('FEATURE TESTS PASSED'); process.exit(0);

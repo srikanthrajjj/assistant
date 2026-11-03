@@ -1,7 +1,7 @@
 import express from 'express';
 import { db, save, id, connect } from './db.js';
 import { runAgent, resolvePending } from './agent.js';
-import { authUrl, exchangeCode, googleConfigured, gmailConnected } from './google.js';
+import { authUrl, exchangeCode, googleConfigured, gmailConnected, takeNonce, newState, takeState } from './google.js';
 
 export const app = express();
 app.use(express.json());
@@ -21,16 +21,15 @@ app.get('/api/notifications', (_, res) => { const n = db.notifications; db.notif
 
 // ---- Gmail connect (open /auth/google?token=APP_TOKEN in a browser once) ----
 app.get('/auth/google', (req, res) => {
-  if (LOCKED) return res.status(503).send('Set APP_TOKEN first');
-  if (req.query.token !== TOKEN) return res.status(401).send('bad token');
-  if (!googleConfigured()) return res.status(500).send('Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET first');
-  res.redirect(authUrl(TOKEN.length + ':' + Buffer.from(TOKEN).toString('base64url')));
+  if (LOCKED || !takeNonce(String(req.query.n))) return res.status(401).send('This link is invalid or expired. Ask the assistant to "connect gmail" again.');
+  if (!googleConfigured()) return res.status(500).send('Google credentials are not set on the server');
+  res.redirect(authUrl(newState()));
 });
 app.get('/auth/google/callback', async (req, res) => {
   try {
-    if (req.query.state !== TOKEN.length + ':' + Buffer.from(TOKEN).toString('base64url')) return res.status(400).send('bad state');
+    if (!takeState(String(req.query.state))) return res.status(400).send('bad or expired state');
     const refresh = await exchangeCode(String(req.query.code));
-    res.send(`<h3>Gmail connected</h3><p>To keep it after server restarts (Render free resets files), add this as env var <b>GOOGLE_REFRESH_TOKEN</b> in Render:</p><textarea rows=4 cols=60 readonly>${refresh}</textarea>`);
+    res.send(`<h3>Gmail connected</h3><p>To keep it after server restarts, add this as env var <b>GOOGLE_REFRESH_TOKEN</b> in Render (or just set DATABASE_URL so it is stored automatically):</p><textarea rows=4 cols=60 readonly>${refresh}</textarea>`);
   } catch (e) { res.status(500).send('failed: ' + e.message); }
 });
 app.get('/api/status', (_, res) => res.json({ gmail: gmailConnected(), search: process.env.TAVILY_API_KEY ? 'tavily' : 'duckduckgo' }));

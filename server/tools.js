@@ -51,6 +51,11 @@ export const tools = [
       const qs = ['subject:(subscription OR renewal OR "your receipt" OR invoice OR "payment received" OR "auto-renew" OR "free trial") newer_than:180d', 'subject:(membership OR "billing" OR "will be charged") newer_than:180d'];
       const seen = new Map(); for (const q of qs) for (const m of await G.searchEmails(q, 20)) seen.set(m.id, m);
       return UNTRUSTED('email', [...seen.values()]); } },
+  { name: 'connect_gmail', confirm: false, description: 'Check whether Gmail is connected; if not, produce a one-time link the user taps to connect it. Use when the user asks to connect/login to Gmail.',
+    input_schema: { type: 'object', properties: {} },
+    run: () => G.gmailConnected() ? { connected: true } : !G.googleConfigured()
+      ? { connected: false, problem: 'The server owner has not set up Google credentials yet (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in the server settings). Tell the user this is a one-time setup step on the server, not something in their phone settings.' }
+      : { connected: false, link: G.newConnectLink(), instruction: 'Show this exact link to the user and ask them to open it and approve read-only Gmail access.' } },
   { name: 'search_tickets', confirm: false, description: 'Search available travel tickets.',
     input_schema: { type: 'object', properties: { route: { type: 'string' }, date: { type: 'string' } }, required: ['route'] },
     run: ({ route }) => TICKETS.filter(t => t.route.toLowerCase().includes(route.toLowerCase().slice(0, 3))) },

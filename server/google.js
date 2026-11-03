@@ -48,3 +48,12 @@ export async function readEmail(id) {
   const m = await gmail(`messages/${id}?format=full`);
   return { id, from: hdr(m, 'from'), subject: hdr(m, 'subject'), date: hdr(m, 'date'), body: bodyText(m.payload).replace(/\s+/g, ' ').slice(0, 4000) };
 }
+
+// one-time links so the APP_TOKEN never appears in a URL
+const nonces = new Map(), states = new Map();
+const fresh = (m) => { const k = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2); m.set(k, Date.now() + 600000); return k; };
+const take = (m, k) => { const e = m.get(k); m.delete(k); return !!e && e > Date.now(); };
+export const newConnectLink = () => (process.env.PUBLIC_URL || 'https://assistant-mvp.onrender.com') + '/auth/google?n=' + fresh(nonces);
+export const takeNonce = (k) => take(nonces, k);
+export const newState = () => fresh(states);
+export const takeState = (k) => take(states, k);
