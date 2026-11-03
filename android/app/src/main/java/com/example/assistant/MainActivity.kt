@@ -2,6 +2,7 @@ package com.example.assistant
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.webkit.WebView
@@ -16,12 +17,12 @@ class MainActivity : Activity() {
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
         requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
-        web = WebView(this).also { it.settings.javaScriptEnabled = true; it.settings.domStorageEnabled = true; it.webViewClient = WebViewClient() }
+        web = WebView(this).also { it.settings.javaScriptEnabled = true; it.settings.domStorageEnabled = true; it.webViewClient = WebViewClient(); it.webChromeClient = android.webkit.WebChromeClient() }
         setContentView(web)
-        if (Config.url(this).isEmpty()) askServer() else start()
+        if (Config.url(this).isEmpty() || Config.token(this).isEmpty()) askServer() else start()
     }
     private fun start() {
-        web.loadUrl(Config.url(this))
+        web.loadUrl(Config.url(this) + "#t=" + Uri.encode(Config.token(this)))
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "poll", ExistingPeriodicWorkPolicy.REPLACE, PeriodicWorkRequestBuilder<PollWorker>(15, TimeUnit.MINUTES).build())
     }

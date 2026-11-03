@@ -20,7 +20,8 @@ form button{padding:0 18px;border:0;border-radius:12px;background:var(--me);colo
 <div id="log"></div>
 <form id="f"><input id="q" placeholder="Remind me, check email, book a ticket…" autocomplete="off"><button>Send</button></form>
 <script>
-let tok=localStorage.tok||prompt('App token (default: dev-token)')||'dev-token';localStorage.tok=tok;
+const ht=new URLSearchParams(location.hash.slice(1)).get('t');if(ht)localStorage.tok=ht;
+let tok=localStorage.tok||prompt('App token')||'dev-token';localStorage.tok=tok;
 set.onclick=()=>{tok=prompt('App token',tok)||tok;localStorage.tok=tok};
 const api=(p,b)=>fetch('/api/'+p,{method:b?'POST':'GET',headers:{'content-type':'application/json',authorization:'Bearer '+tok},body:b&&JSON.stringify(b)}).then(r=>r.json());
 const add=(t,c='')=>{const d=document.createElement('div');d.className='m '+c;d.textContent=t;log.appendChild(d);log.scrollTop=1e9;return d};
