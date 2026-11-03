@@ -47,7 +47,7 @@ export function tickReminders(now = Date.now()) {
   if (changed) save();
 }
 export async function digest() {
-  const { reply } = await runAgent('Morning check-in: review my open tasks, reminders and inbox. If there is nothing worth my attention reply exactly NONE, otherwise a 3-bullet digest.', { remember: false });
+  const { reply } = await runAgent('Morning check-in: call list_tasks, list_reminders and (if Gmail is connected) inbox_digest, plus list_subscriptions for charges due in the next 3 days. If there is nothing worth my attention reply exactly NONE, otherwise a 3-bullet digest.', { remember: false });
   if (reply.trim() !== 'NONE') { db.notifications.push({ id: id(), title: 'Daily digest', body: reply }); save(); }
 }
 app.post('/api/digest', async (_, res) => { await digest(); res.json({ ok: true }); });

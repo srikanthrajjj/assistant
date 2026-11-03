@@ -3,8 +3,9 @@ const SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
 const cfg = () => ({ id: process.env.GOOGLE_CLIENT_ID, secret: process.env.GOOGLE_CLIENT_SECRET,
   redirect: (process.env.PUBLIC_URL || 'https://assistant-mvp.onrender.com') + '/auth/google/callback' });
 export const googleConfigured = () => !!(cfg().id && cfg().secret);
-const refreshToken = () => process.env.GOOGLE_REFRESH_TOKEN || db.google?.refresh;
-export const gmailConnected = () => googleConfigured() && !!refreshToken();
+const refreshToken = () => db.google?.refresh || process.env.GOOGLE_REFRESH_TOKEN;
+let broken = false;   // set when Google says the token is revoked/expired (tokens of apps in Testing mode expire after ~7 days)
+export const gmailConnected = () => googleConfigured() && !!refreshToken() && !broken;
 
 export const authUrl = (state) => 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
   client_id: cfg().id, redirect_uri: cfg().redirect, response_type: 'code', scope: SCOPES, access_type: 'offline', prompt: 'consent', state });
@@ -13,14 +14,18 @@ export async function exchangeCode(code) {
   const r = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ code, client_id: cfg().id, client_secret: cfg().secret, redirect_uri: cfg().redirect, grant_type: 'authorization_code' }) });
   const j = await r.json(); if (!r.ok) throw new Error('google: ' + JSON.stringify(j));
-  db.google = { refresh: j.refresh_token, access: j.access_token, exp: Date.now() + j.expires_in * 1000 - 60000 }; save();
+  broken = false; db.google = { refresh: j.refresh_token || refreshToken(), access: j.access_token, exp: Date.now() + j.expires_in * 1000 - 60000 }; save();
   return j.refresh_token;
 }
 async function accessToken() {
   if (db.google?.access && db.google.exp > Date.now()) return db.google.access;
   const r = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ refresh_token: refreshToken(), client_id: cfg().id, client_secret: cfg().secret, grant_type: 'refresh_token' }) });
-  const j = await r.json(); if (!r.ok) throw new Error('google refresh: ' + JSON.stringify(j));
+  const j = await r.json();
+  if (!r.ok) {
+    if (j.error === 'invalid_grant') { broken = true; if (db.google) { db.google.refresh = null; db.google.access = null; save(); } throw new Error('Gmail access expired or was revoked. Ask the user to connect Gmail again (call connect_gmail).'); }
+    throw new Error('google refresh: ' + JSON.stringify(j));
+  }
   db.google = { ...(db.google || {}), refresh: refreshToken(), access: j.access_token, exp: Date.now() + j.expires_in * 1000 - 60000 }; save();
   return j.access_token;
 }

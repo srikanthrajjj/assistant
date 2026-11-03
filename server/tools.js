@@ -44,6 +44,16 @@ export const tools = [
   { name: 'read_email', confirm: false, description: 'Read the full body of one email by id (from search_emails).',
     input_schema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
     run: async ({ id: mid }) => G.gmailConnected() ? UNTRUSTED('email', await G.readEmail(mid)) : (INBOX.find(m => m.id === mid) || { error: 'not found' }) },
+  { name: 'inbox_digest', confirm: false, description: 'Fetch recent unread, non-promotional emails (last 3 days) so you can tell the user which need attention or action, ranked by importance.',
+    input_schema: { type: 'object', properties: {} },
+    run: async () => G.gmailConnected() ? UNTRUSTED('email', await G.searchEmails('is:unread newer_than:3d -category:promotions -category:social -category:forums', 15))
+      : { warning: 'Gmail NOT connected. Tell the user to connect Gmail (connect_gmail).' } },
+  { name: 'save_subscriptions', confirm: false, description: 'Save the user\'s detected subscriptions after find_subscriptions. Replaces any saved entry with the same name. Dates as YYYY-MM-DD when known.',
+    input_schema: { type: 'object', properties: { items: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, amount: { type: 'number' }, currency: { type: 'string' }, period: { type: 'string', description: 'monthly/yearly/etc' }, next_charge: { type: 'string' }, notes: { type: 'string' } }, required: ['name'] } } }, required: ['items'] },
+    run: ({ items }) => { db.subscriptions ||= []; for (const it of items) { db.subscriptions = db.subscriptions.filter(s => s.name.toLowerCase() !== it.name.toLowerCase()); db.subscriptions.push(it); } save(); return { saved: items.length, total: db.subscriptions.length }; } },
+  { name: 'list_subscriptions', confirm: false, description: 'List the subscriptions saved earlier, with a monthly total if amounts are known.',
+    input_schema: { type: 'object', properties: {} },
+    run: () => { const s = db.subscriptions || []; const monthly = s.reduce((a, x) => a + (x.amount ? (x.period === 'yearly' ? x.amount / 12 : x.amount) : 0), 0); return { subscriptions: s, approx_monthly_total: Math.round(monthly * 100) / 100 }; } },
   { name: 'find_subscriptions', confirm: false, description: 'Scan the last 6 months of Gmail for receipts, invoices and renewal notices so you can list the user\'s recurring subscriptions (name, amount, billing date, how to cancel). Summarise, deduplicate by merchant.',
     input_schema: { type: 'object', properties: {} },
     run: async () => {

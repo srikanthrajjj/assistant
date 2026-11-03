@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 const FILE = process.env.DATA_FILE || './data.json';
-const empty = () => ({ history: [], reminders: [], tasks: [], notifications: [], pending: [], bookings: [], memory: '', google: null });
+const empty = () => ({ history: [], reminders: [], tasks: [], notifications: [], pending: [], bookings: [], memory: '', google: null, subscriptions: [] });
 export const db = empty();
 try { Object.assign(db, JSON.parse(fs.readFileSync(FILE, 'utf8'))); } catch {}
 
