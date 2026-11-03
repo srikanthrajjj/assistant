@@ -12,4 +12,8 @@ const { runAgent } = await import('./agent.js'); const { db } = await import('./
 const r = await runAgent('add a task');
 assert.equal(seen.model,'claude-sonnet-test');
 assert.ok(r.reply.startsWith('Added:') && db.tasks[0].title==='gw task' && seen.tools.length>5);
+await runAgent('research this', { remember: false, focus: 'research' });
+assert.ok(seen.messages[0].content.includes('Focus: research'), 'focus mode reaches the system prompt');
+assert.ok(!seen.messages[0].content.includes('Focus: planning'));
+assert.ok(seen.messages.every(m => Object.keys(m).every(k => ['role', 'content', 'tool_calls', 'tool_call_id'].includes(k))), 'no extra fields (timestamps) leak to the LLM');
 console.log('GATEWAY PATH OK'); process.exit(0);

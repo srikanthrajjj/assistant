@@ -17,7 +17,7 @@ app.use(express.static('public'));
 app.use('/api', (req, res, next) => LOCKED ? res.status(503).json({ error: 'Server locked: set APP_TOKEN in Render > Environment' }) : (req.get('authorization') === `Bearer ${TOKEN}` ? next() : res.status(401).json({ error: 'unauthorized' })));
 
 app.post('/api/chat', chatLimiter, async (req, res) => {
-  try { res.json(await runAgent(String(req.body.message || ''))); }
+  try { res.json(await runAgent(String(req.body.message || ''), { focus: ['email', 'research', 'planner'].includes(req.body.focus) ? req.body.focus : 'general' })); }
   catch (e) { console.error(e); res.status(500).json({ error: 'agent failed: ' + e.message }); }
 });
 app.post('/api/confirm/:id', async (req, res) => res.json(await resolvePending(req.params.id, !!req.body.approve)));
@@ -31,6 +31,7 @@ app.get('/api/home', (_, res) => {
     reminders: db.reminders.filter(r => !r.done).sort((a, b) => new Date(a.when) - new Date(b.when)).slice(0, 8),
     subscriptions: subs, monthly: Math.round(monthly * 100) / 100,
     gmail: gmailConnected(), pending: db.pending,
+    recent: [...new Map(db.history.filter(m => m.role === 'user').reverse().map(m => [m.content, { text: m.content, t: m.t || null }])).values()].slice(0, 6),
   });
 });
 let inboxCache = { at: 0, data: null };
@@ -45,8 +46,10 @@ app.get('/api/inbox', async (_, res) => {
 app.post('/api/tasks', (req, res) => { const title = String(req.body.title || '').trim().slice(0, 200); if (!title) return res.status(400).json({ error: 'title required' });
   const t = { id: id(), title, due: null, done: false }; db.tasks.push(t); save(); res.json(t); });
 app.post('/api/tasks/:id/done', (req, res) => { const t = db.tasks.find(x => x.id === req.params.id); if (!t) return res.status(404).json({ error: 'not found' }); t.done = true; save(); res.json(t); });
+app.post('/api/tasks/:id/reopen', (req, res) => { const t = db.tasks.find(x => x.id === req.params.id); if (!t) return res.status(404).json({ error: 'not found' }); t.done = false; save(); res.json(t); });
 app.post('/api/reminders/:id/done', (req, res) => { const r = db.reminders.find(x => x.id === req.params.id); if (!r) return res.status(404).json({ error: 'not found' }); r.done = true; save(); res.json(r); });
 app.get('/api/history', (_, res) => res.json(db.history.slice(-40)));
+app.post('/api/history/clear', (_, res) => { db.history = []; save(); res.json({ ok: true }); });
 app.post('/api/memory', (req, res) => { db.memory = String(req.body.memory || ''); save(); res.json({ ok: true }); });
 app.get('/api/notifications', async (req, res) => {   // ?wait=25 = long-poll: returns as soon as something is due
   const wait = Math.min(Number(req.query.wait) || 0, 30); let closed = false; req.on('close', () => (closed = true));

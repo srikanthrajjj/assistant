@@ -69,7 +69,7 @@ export const tools = [
   { name: 'search_tickets', confirm: false, description: 'Search available travel tickets.',
     input_schema: { type: 'object', properties: { route: { type: 'string' }, date: { type: 'string' } }, required: ['route'] },
     run: ({ route }) => TICKETS.filter(t => t.route.toLowerCase().includes(route.toLowerCase().slice(0, 3))) },
-  { name: 'book_ticket', confirm: true, description: 'Book a ticket by id. Requires explicit user confirmation (payment).',
+  { name: 'book_ticket', confirm: true, summarize: ({ ticket_id }) => { const k = TICKETS.find(x => x.id === ticket_id); return k ? `Book the ${k.time} ${k.route} flight on ${new Date(k.date + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })} for ₹${k.price.toLocaleString('en-IN')}?` : 'Book this ticket?'; }, description: 'Book a ticket by id. Requires explicit user confirmation (payment).',
     input_schema: { type: 'object', properties: { ticket_id: { type: 'string' } }, required: ['ticket_id'] },
     run: ({ ticket_id }) => { const t = TICKETS.find(x => x.id === ticket_id); if (!t) return { error: 'ticket not found' };
       const b = { id: id(), ...t, status: 'BOOKED (mock)' }; db.bookings.push(b); save(); return b; } },

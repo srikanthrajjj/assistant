@@ -18,6 +18,7 @@ const c = await post('/api/chat', { message: 'read my email' });
 assert.ok(c.reply.includes('Report due Friday'), 'email read');
 const b = await post('/api/chat', { message: 'book the evening flight' });
 assert.equal(b.pending.length, 1, 'booking queued');
+assert.match(b.pending[0].summary, /^Book the 18:10 BLR→DEL flight on 10 Nov for ₹4,300\?$/, 'approval is human readable');
 assert.equal((await get('/api/state')).bookings.length, 0, 'NOT booked before confirm');
 await post('/api/confirm/' + b.pending[0].id, { approve: true });
 assert.equal((await get('/api/state')).bookings.length, 1, 'booked after confirm');

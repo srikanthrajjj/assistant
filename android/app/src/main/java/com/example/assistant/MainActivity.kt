@@ -5,6 +5,8 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.speech.RecognizerIntent
+import org.json.JSONObject
 import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
@@ -24,6 +26,15 @@ class MainActivity : Activity() {
     /** Lets the web UI hand the access token to the native background service. */
     inner class Bridge {
         @JavascriptInterface fun setToken(t: String) { Config.saveToken(this@MainActivity, t) }
+        /** Opens Android's built-in speech recogniser; the result comes back through window.onVoice(text). */
+        @JavascriptInterface fun startVoice() {
+            runOnUiThread {
+                try {
+                    startActivityForResult(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                        .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM), 42)
+                } catch (e: Exception) { web.evaluateJavascript("window.onVoice&&window.onVoice('',true)", null) }
+            }
+        }
     }
 
     private fun startUrl(): String =
@@ -65,6 +76,15 @@ class MainActivity : Activity() {
         try { startForegroundService(Intent(this, PollService::class.java)) } catch (_: Exception) {}
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "poll", ExistingPeriodicWorkPolicy.KEEP, PeriodicWorkRequestBuilder<PollWorker>(15, TimeUnit.MINUTES).build())
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(req: Int, res: Int, data: Intent?) {
+        super.onActivityResult(req, res, data)
+        if (req == 42 && res == RESULT_OK) {
+            val text = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull() ?: return
+            web.evaluateJavascript("window.onVoice&&window.onVoice(" + JSONObject.quote(text) + ")", null)
+        }
     }
 
     override fun onDestroy() { web.destroy(); super.onDestroy() }
