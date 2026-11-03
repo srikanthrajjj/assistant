@@ -25,12 +25,26 @@ function fromOpenAI(r) {
   return { stop_reason: msg.tool_calls?.length ? 'tool_use' : 'end_turn', content };
 }
 
+let autoModel = null;
+async function pickModel() {
+  if (process.env.LLM_MODEL) return process.env.LLM_MODEL;
+  if (autoModel) return autoModel;
+  const r = await fetch(process.env.LLM_BASE_URL.replace(/\/$/, '') + '/models', { headers: { authorization: `Bearer ${process.env.LLM_API_KEY}` }, signal: AbortSignal.timeout(10000) });
+  if (!r.ok) throw new Error('LLM_MODEL is empty and the model list failed: HTTP ' + r.status + '. Set LLM_MODEL in Render.');
+  const ids = ((await r.json()).data || []).map(m => m.id);
+  const prefs = [/claude.*sonnet/i, /claude/i, /gpt-4\.1|gpt-4o|gpt-5/i, /gemini.*(pro|flash)/i];
+  autoModel = prefs.map(p => ids.find(i => p.test(i))).find(Boolean) || ids[0];
+  if (!autoModel) throw new Error('No models available for this key. Set LLM_MODEL in Render.');
+  console.log('LLM_MODEL not set, auto-picked:', autoModel);
+  return autoModel;
+}
+
 export async function create(params) {
   if (process.env.MOCK_LLM) return mockCreate(params);
   if (!OPENAI_MODE) return anth.messages.create(params);
   const res = await fetch(process.env.LLM_BASE_URL.replace(/\/$/, '') + '/chat/completions', {
     method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${process.env.LLM_API_KEY}` },
-    body: JSON.stringify(toOpenAI(params)) });
+    body: JSON.stringify({ ...toOpenAI(params), model: await pickModel() }) });
   if (!res.ok) throw new Error(`LLM ${res.status}: ${(await res.text()).slice(0, 200)}`);
   return fromOpenAI(await res.json());
 }
