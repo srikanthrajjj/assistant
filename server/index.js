@@ -17,7 +17,11 @@ app.post('/api/chat', async (req, res) => {
 app.post('/api/confirm/:id', async (req, res) => res.json(await resolvePending(req.params.id, !!req.body.approve)));
 app.get('/api/state', (_, res) => res.json({ reminders: db.reminders, tasks: db.tasks, bookings: db.bookings, pending: db.pending }));
 app.post('/api/memory', (req, res) => { db.memory = String(req.body.memory || ''); save(); res.json({ ok: true }); });
-app.get('/api/notifications', (_, res) => { const n = db.notifications; db.notifications = []; save(); res.json(n); });
+app.get('/api/notifications', async (req, res) => {   // ?wait=25 = long-poll: returns as soon as something is due
+  const wait = Math.min(Number(req.query.wait) || 0, 30); let closed = false; req.on('close', () => (closed = true));
+  for (let t = 0; t < wait * 2 && !db.notifications.length && !closed; t++) await new Promise(r => setTimeout(r, 500));
+  const n = db.notifications; db.notifications = []; if (n.length) save(); res.json(n);
+});
 
 // ---- Gmail connect (open /auth/google?token=APP_TOKEN in a browser once) ----
 app.get('/auth/google', (req, res) => {
@@ -36,10 +40,11 @@ app.get('/api/status', (_, res) => res.json({ gmail: gmailConnected(), search: p
 
 // ---- proactive layer ----
 export function tickReminders(now = Date.now()) {
+  let changed = false;
   for (const r of db.reminders) if (!r.done && new Date(r.when).getTime() <= now) {
-    r.done = true; db.notifications.push({ id: id(), title: 'Reminder', body: r.text });
+    r.done = true; changed = true; db.notifications.push({ id: id(), title: 'Reminder', body: r.text });
   }
-  save();
+  if (changed) save();
 }
 export async function digest() {
   const { reply } = await runAgent('Morning check-in: review my open tasks, reminders and inbox. If there is nothing worth my attention reply exactly NONE, otherwise a 3-bullet digest.', { remember: false });
@@ -53,7 +58,7 @@ if (process.argv[1].endsWith('index.js')) {
     await connect(new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_SSL === 'off' ? false : { rejectUnauthorized: false } }));
     console.log('state stored in Postgres');
   } else console.log('WARNING: no DATABASE_URL, state is stored in a local file and is lost on restart on free hosts');
-  setInterval(() => tickReminders(), 20000);
+  setInterval(() => tickReminders(), 5000);
   let lastDay = '';
   setInterval(() => { const d = new Date(); const key = d.toDateString();
     if (d.getHours() === Number(process.env.DIGEST_HOUR ?? 8) && key !== lastDay) { lastDay = key; digest().catch(console.error); } }, 60000);

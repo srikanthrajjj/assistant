@@ -30,6 +30,7 @@ class MainActivity : Activity() {
         if (Config.url(this).isEmpty() || Config.token(this).isEmpty()) askServer() else start()
     }
     private fun start() {
+        try { startForegroundService(android.content.Intent(this, PollService::class.java)) } catch (_: Exception) {}
         web.loadUrl(Config.url(this) + "#app=1&t=" + Uri.encode(Config.token(this)))
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "poll", ExistingPeriodicWorkPolicy.REPLACE, PeriodicWorkRequestBuilder<PollWorker>(15, TimeUnit.MINUTES).build())
