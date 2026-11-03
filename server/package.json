@@ -2,6 +2,16 @@
   "name": "assistant-mvp-server",
   "version": "0.1.0",
   "type": "module",
-  "scripts": { "start": "node index.js", "test": "MOCK_LLM=1 node test.js && node test-gateway.js && node test-features.js" },
-  "dependencies": { "@anthropic-ai/sdk": "^0.40.0", "express": "^4.19.2" }
+  "scripts": {
+    "start": "node index.js",
+    "test": "MOCK_LLM=1 node test.js && node test-gateway.js && node test-features.js && node test-db.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "express": "^4.19.2",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "pg-mem": "^3.0.14"
+  }
 }

@@ -1,5 +1,5 @@
 import express from 'express';
-import { db, save, id } from './db.js';
+import { db, save, id, connect } from './db.js';
 import { runAgent, resolvePending } from './agent.js';
 import { authUrl, exchangeCode, googleConfigured, gmailConnected } from './google.js';
 
@@ -47,6 +47,11 @@ export async function digest() {
 app.post('/api/digest', async (_, res) => { await digest(); res.json({ ok: true }); });
 
 if (process.argv[1].endsWith('index.js')) {
+  if (process.env.DATABASE_URL) {
+    const { default: pg } = await import('pg');
+    await connect(new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_SSL === 'off' ? false : { rejectUnauthorized: false } }));
+    console.log('state stored in Postgres');
+  } else console.log('WARNING: no DATABASE_URL, state is stored in a local file and is lost on restart on free hosts');
   setInterval(() => tickReminders(), 20000);
   let lastDay = '';
   setInterval(() => { const d = new Date(); const key = d.toDateString();
