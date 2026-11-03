@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: assistant-mvp
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: APP_TOKEN
+        sync: false
