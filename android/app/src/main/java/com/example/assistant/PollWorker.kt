@@ -18,7 +18,7 @@ class PollWorker(ctx: Context, p: WorkerParameters) : Worker(ctx, p) {
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
             nm.notify(o.getString("id").hashCode(), NotificationCompat.Builder(applicationContext, "a")
-                .setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(o.getString("title"))
+                .setSmallIcon(R.drawable.ic_stat).setContentTitle(o.getString("title"))
                 .setContentText(o.getString("body")).setStyle(NotificationCompat.BigTextStyle().bigText(o.getString("body"))).build())
         }
         Result.success()

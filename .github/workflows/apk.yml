@@ -11,15 +11,15 @@ jobs:
         with: { distribution: temurin, java-version: 17 }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: 8.7 }
-      - run: gradle -p android :app:assembleDebug --no-daemon
+      - run: gradle -p android :app:assembleRelease --no-daemon
         env:
           APP_TOKEN: ${{ secrets.APP_TOKEN }}
           DEFAULT_URL: https://assistant-mvp.onrender.com
       - uses: actions/upload-artifact@v4
-        with: { name: assistant-debug-apk, path: android/app/build/outputs/apk/debug/app-debug.apk }
+        with: { name: assistant-release-apk, path: android/app/build/outputs/apk/release/app-release.apk }
       - name: Save APK to apk-build branch
         run: |
-          mkdir /tmp/out && cp android/app/build/outputs/apk/debug/app-debug.apk /tmp/out/assistant.apk
+          mkdir /tmp/out && cp android/app/build/outputs/apk/release/app-release.apk /tmp/out/assistant.apk
           cd /tmp/out && git init -q -b apk-build && git add assistant.apk
           git -c user.name=ci -c user.email=ci@example.com commit -qm "APK from ${{ github.sha }}"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" apk-build

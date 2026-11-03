@@ -4,13 +4,19 @@ import { runAgent, resolvePending } from './agent.js';
 import { authUrl, exchangeCode, googleConfigured, gmailConnected, takeNonce, newState, takeState, searchEmails, newConnectLink } from './google.js';
 
 export const app = express();
-app.use(express.json());
+app.disable('x-powered-by');
+app.use((req, res, next) => { res.set({ 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY' }); next(); });
+app.use(express.json({ limit: '100kb' }));
+// protects your LLM bill: at most 40 chat messages per 5 minutes
+const chatHits = []; const CHAT_LIMIT = Number(process.env.CHAT_LIMIT || 40);
+const chatLimiter = (req, res, next) => { const now = Date.now(); while (chatHits.length && now - chatHits[0] > 300000) chatHits.shift();
+  if (chatHits.length >= CHAT_LIMIT) return res.status(429).json({ error: 'Too many messages, please wait a few minutes.' }); chatHits.push(now); next(); };
 const TOKEN = process.env.APP_TOKEN || 'dev-token';
 const LOCKED = !!process.env.RENDER && !process.env.APP_TOKEN;   // never run publicly with the default password
 app.use(express.static('public'));
 app.use('/api', (req, res, next) => LOCKED ? res.status(503).json({ error: 'Server locked: set APP_TOKEN in Render > Environment' }) : (req.get('authorization') === `Bearer ${TOKEN}` ? next() : res.status(401).json({ error: 'unauthorized' })));
 
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', chatLimiter, async (req, res) => {
   try { res.json(await runAgent(String(req.body.message || ''))); }
   catch (e) { console.error(e); res.status(500).json({ error: 'agent failed: ' + e.message }); }
 });
@@ -77,6 +83,13 @@ export async function digest() {
   if (reply.trim() !== 'NONE') { db.notifications.push({ id: id(), title: 'Daily digest', body: reply }); save(); }
 }
 app.post('/api/digest', async (_, res) => { await digest(); res.json({ ok: true }); });
+
+// JSON errors only, never stack traces
+app.use((err, req, res, next) => {
+  if (err.status === 413) return res.status(413).json({ error: 'Message too large' });
+  if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Bad request' });
+  console.error(err.message); res.status(err.status || 500).json({ error: 'Server error' });
+});
 
 if (process.argv[1].endsWith('index.js')) {
   if (process.env.DATABASE_URL) {

@@ -21,7 +21,7 @@ class PollService : Service() {
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel("svc", "Assistant background", NotificationManager.IMPORTANCE_MIN))
         nm.createNotificationChannel(NotificationChannel("a", "Assistant", NotificationManager.IMPORTANCE_HIGH))
-        val ongoing: Notification = NotificationCompat.Builder(this, "svc").setSmallIcon(android.R.drawable.ic_dialog_info)
+        val ongoing: Notification = NotificationCompat.Builder(this, "svc").setSmallIcon(R.drawable.ic_stat)
             .setContentTitle("Assistant is listening for reminders").setOngoing(true).build()
         if (android.os.Build.VERSION.SDK_INT >= 29) startForeground(1, ongoing, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         else startForeground(1, ongoing)
@@ -32,6 +32,7 @@ class PollService : Service() {
     private fun loop(nm: NotificationManager) {
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         while (running) {
+            if (Config.token(this).isEmpty()) { try { Thread.sleep(15000) } catch (_: InterruptedException) {}; continue }
             try {
                 val c = URL(Config.url(this) + "/api/notifications?wait=25").openConnection() as HttpURLConnection
                 c.connectTimeout = 15000; c.readTimeout = 45000
@@ -41,7 +42,7 @@ class PollService : Service() {
                     for (k in 0 until arr.length()) {
                         val o = arr.getJSONObject(k)
                         nm.notify(o.getString("id").hashCode(), NotificationCompat.Builder(this, "a")
-                            .setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(o.getString("title"))
+                            .setSmallIcon(R.drawable.ic_stat).setContentTitle(o.getString("title"))
                             .setContentText(o.getString("body")).setStyle(NotificationCompat.BigTextStyle().bigText(o.getString("body")))
                             .setContentIntent(open).setAutoCancel(true).build())
                     }

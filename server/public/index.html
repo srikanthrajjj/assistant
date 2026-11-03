@@ -1,187 +1,316 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>Assistant</title>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#4f46e5">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="color-scheme" content="light dark">
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#f6f6f3" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#0e0f12" media="(prefers-color-scheme: dark)">
 <style>
-:root{--bg:#f4f5fb;--card:#fff;--fg:#14162b;--mute:#6b7090;--line:#e6e8f2;--brand:#4f46e5;--brand2:#7c3aed;--me:#4f46e5;--bot:#fff;--ok:#16a34a;--warn:#f59e0b;--shadow:0 1px 2px rgba(20,22,43,.05),0 6px 18px rgba(20,22,43,.06)}
-@media(prefers-color-scheme:dark){:root{--bg:#0d0f1c;--card:#171a2e;--fg:#eceefb;--mute:#8d92b5;--line:#262a45;--bot:#1d2139;--shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25)}}
+:root{
+  --bg:#f6f6f3;--surface:#fff;--sunken:#efefea;--ink:#17181c;--ink2:#565a66;--ink3:#80848f;--line:#e4e4de;
+  --accent:#1d4ed8;--accent-ink:#fff;--accent-soft:#e8eefc;--ok:#15803d;--warn:#b45309;--warn-soft:#fdf3e1;--danger:#b91c1c;
+  --r:12px;--r-s:8px;--bar:52px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#0e0f12;--surface:#16181d;--sunken:#1c1f26;--ink:#ececef;--ink2:#a2a6b2;--ink3:#7a7e8a;--line:#262932;
+  --accent:#6b8cff;--accent-ink:#0b1020;--accent-soft:#1a2340;--ok:#4ade80;--warn:#f2b45a;--warn-soft:#2a2113;--danger:#f87171;}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:flex;flex-direction:column;overflow:hidden}
-header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 16px 0}
-.top{display:flex;align-items:center;justify-content:space-between;padding-bottom:8px}
-.title{font-weight:700;font-size:18px;letter-spacing:.2px}
-.gear{background:rgba(255,255,255,.18);border:0;color:#fff;width:34px;height:34px;border-radius:50%;font-size:16px}
-nav{display:flex;gap:4px}
-nav button{flex:1;background:none;border:0;color:rgba(255,255,255,.7);padding:10px 0 12px;font:600 14px inherit;font-family:inherit;display:flex;gap:6px;align-items:center;justify-content:center;border-bottom:3px solid transparent}
-nav button.on{color:#fff;border-bottom-color:#fff}
-nav svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden;overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{height:100%;display:flex;flex-direction:column}
+.num{font-variant-numeric:tabular-nums}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* app bar + tabs */
+.bar{height:calc(var(--bar) + env(safe-area-inset-top));padding:env(safe-area-inset-top) 16px 0;display:flex;align-items:center;justify-content:space-between;background:var(--bg)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:650;font-size:17px;letter-spacing:-.01em}
+.mark{width:22px;height:22px;border-radius:6px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink)}
+.mark svg{width:14px;height:14px;stroke-width:2.2}
+.bar-actions{display:flex;align-items:center;gap:6px}
+.icon-btn{width:40px;height:40px;border-radius:10px;border:0;background:none;display:grid;place-items:center;color:var(--ink2)}
+.icon-btn:active{background:var(--sunken)}
+.net{width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:4px}.net.bad{background:var(--warn)}
+.tabs{position:relative;display:flex;background:var(--bg);border-bottom:1px solid var(--line)}
+.tabs button{flex:1;height:44px;border:0;background:none;color:var(--ink3);font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px}
+.tabs button[aria-selected=true]{color:var(--ink)}
+.tabs .ink{position:absolute;bottom:-1px;left:0;width:50%;height:2px;background:var(--accent);transition:transform .22s cubic-bezier(.3,.7,.2,1)}
+.tabs.chat .ink{transform:translateX(100%)}
+.badge{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;display:none;place-items:center}
+.badge.on{display:grid}
+
 main{flex:1;min-height:0;position:relative}
 section{position:absolute;inset:0;display:none;flex-direction:column}section.on{display:flex}
-#home{overflow:auto;padding:16px 14px calc(env(safe-area-inset-bottom) + 24px)}
-.hello{font-size:24px;font-weight:700;margin:2px 4px 2px}.date{color:var(--mute);margin:0 4px 14px}
-.grid{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:720px){.grid{grid-template-columns:1fr 1fr}}
-.card{background:var(--card);border-radius:18px;padding:14px 14px 12px;box-shadow:var(--shadow)}
-.card h3{margin:0 0 10px;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--mute);display:flex;justify-content:space-between;align-items:center}
-.wide{grid-column:1/-1}
-.weather{display:flex;align-items:center;gap:14px}.wx{font-size:44px;line-height:1}.temp{font-size:34px;font-weight:700}.sub{color:var(--mute);font-size:13px}
-.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{background:var(--bg);border:1px solid var(--line);color:var(--fg);border-radius:999px;padding:8px 13px;font:500 13px inherit;font-family:inherit}
-.chip:active{transform:scale(.97)}
-.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}.row:first-of-type{border-top:0}
-.row .grow{flex:1;min-width:0}.row .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row .s{color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.check{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:none;flex:none}.check:active{background:var(--ok);border-color:var(--ok)}
-.x{background:none;border:0;color:var(--mute);font-size:18px;padding:2px 6px}
-.empty{color:var(--mute);font-size:13px;padding:6px 0}
-.add{display:flex;gap:8px;margin-top:8px}.add input{flex:1;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:12px;padding:10px 12px;font-size:15px;min-width:0}
-.btn{background:var(--brand);color:#fff;border:0;border-radius:12px;padding:10px 14px;font:600 14px inherit;font-family:inherit}.btn.ghost{background:var(--bg);color:var(--fg);border:1px solid var(--line)}.btn.ok{background:var(--ok)}
-.big{font-size:28px;font-weight:700}.pill{font-size:11px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--mute)}
-.skeleton{height:14px;border-radius:7px;background:linear-gradient(90deg,var(--line),transparent,var(--line));background-size:200% 100%;animation:sh 1.2s infinite}@keyframes sh{to{background-position:-200% 0}}
+
+/* home */
+#home{overflow:auto;-webkit-overflow-scrolling:touch}
+.page{padding:20px 16px calc(env(safe-area-inset-bottom) + 28px);max-width:760px;margin:0 auto;width:100%}
+.intro{margin-bottom:16px}
+.eyebrow{font-size:13px;color:var(--ink3);font-weight:500}
+h1{margin:2px 0 0;font-size:26px;line-height:1.15;letter-spacing:-.02em;font-weight:650}
+.wx{display:flex;align-items:center;gap:8px;color:var(--ink2);text-align:left;min-height:32px;background:none;border:0;padding:6px 0 0;max-width:100%}
+.wx .t{font-size:15px;font-weight:600;color:var(--ink)}.wx .d{font-size:13px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ask{width:100%;display:flex;align-items:center;gap:10px;height:48px;padding:0 14px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);color:var(--ink3);font-size:15px;text-align:left;margin-bottom:12px}
+.ask:active{background:var(--sunken)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-align:left}
+.stat b{display:block;font-size:24px;font-weight:650;letter-spacing:-.02em;line-height:1.1}
+.stat span{font-size:12px;color:var(--ink3)}
+.grid{display:grid;gap:12px;grid-template-columns:1fr}@media(min-width:760px){.grid{grid-template-columns:1fr 1fr}.span2{grid-column:1/-1}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.card>header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px}
+.card h2{margin:0;font-size:15px;font-weight:650;letter-spacing:-.005em}
+.link{background:none;border:0;color:var(--accent);font-weight:600;font-size:13px;padding:6px 0}
+.rows{padding:0 16px 6px}
+.row{display:flex;align-items:center;gap:12px;min-height:48px;padding:9px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.grow{flex:1;min-width:0}.t1{font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.t2{font-size:13px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.right{color:var(--ink2);font-size:13px;white-space:nowrap}
+.check{width:22px;height:22px;border-radius:50%;border:1.75px solid var(--ink3);background:none;padding:0;display:grid;place-items:center;color:transparent;flex:none;transition:all .15s}
+.check svg{width:13px;height:13px;stroke-width:3}.check:hover,.check:active{border-color:var(--ok);color:var(--ok)}
+.row.gone{opacity:0;transform:translateX(12px);transition:all .2s}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--sunken);color:var(--ink2);display:grid;place-items:center;font-weight:650;font-size:13px;flex:none}
+.empty{padding:6px 16px 16px;color:var(--ink3);font-size:14px}
+.empty .btn{margin-top:10px}
+.addrow{display:flex;gap:8px;padding:6px 16px 14px}
+.addrow input{flex:1;min-width:0;height:40px;border:1px solid var(--line);border-radius:var(--r-s);background:var(--bg);color:var(--ink);padding:0 12px;font-size:15px}
+.btn{height:40px;padding:0 16px;border-radius:var(--r-s);border:1px solid transparent;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:14px}
+.btn.quiet{background:none;border-color:var(--line);color:var(--ink)}.btn.sm{height:34px;padding:0 12px;font-size:13px}.btn:active{filter:brightness(.92)}
+.big{font-size:26px;font-weight:650;letter-spacing:-.02em}.big small{font-size:13px;color:var(--ink3);font-weight:500;letter-spacing:0}
+.sub-head{padding:2px 16px 8px}
+.soon{font-size:12px;color:var(--warn);background:var(--warn-soft);padding:2px 8px;border-radius:999px;font-weight:600;white-space:nowrap}
+.approval{border-left:3px solid var(--warn);background:var(--surface);border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.approval h2{margin:0 0 2px;font-size:15px}.approval p{margin:0 0 12px;color:var(--ink2);font-size:14px}.approval .acts{display:flex;gap:8px}
+.sk{height:12px;border-radius:6px;background:linear-gradient(90deg,var(--sunken) 25%,var(--line) 50%,var(--sunken) 75%);background-size:300% 100%;animation:sk 1.3s infinite;margin:14px 16px}
+@keyframes sk{to{background-position:-300% 0}}
+
 /* chat */
-#log{flex:1;overflow:auto;padding:14px 14px 6px;display:flex;flex-direction:column;gap:8px}
-.m{max-width:84%;padding:10px 13px;border-radius:18px;white-space:pre-wrap;word-wrap:break-word;background:var(--bot);box-shadow:var(--shadow);border-bottom-left-radius:6px}
-.m.me{align-self:flex-end;background:var(--me);color:#fff;border-bottom-left-radius:18px;border-bottom-right-radius:6px;box-shadow:none}
-.m.sys{align-self:center;background:none;box-shadow:none;color:var(--mute);font-size:13px}
-.m a{color:inherit;text-decoration:underline}
-.typing span{display:inline-block;width:7px;height:7px;margin:0 2px;border-radius:50%;background:var(--mute);animation:b 1s infinite}.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}@keyframes b{50%{transform:translateY(-4px);opacity:.5}}
-.act{display:flex;gap:8px;margin-top:8px}
-form{display:flex;gap:8px;padding:10px 12px calc(env(safe-area-inset-bottom) + 10px);background:var(--bg);border-top:1px solid var(--line)}
-form input{flex:1;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:22px;padding:12px 16px;font-size:16px;min-width:0}
-form button{width:46px;height:46px;border-radius:50%;border:0;background:var(--brand);color:#fff;flex:none;display:flex;align-items:center;justify-content:center}
-form svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#log{flex:1;overflow:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
+.msg{max-width:86%;padding:10px 14px;border-radius:16px;word-wrap:break-word;overflow-wrap:anywhere}
+.msg.bot{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:5px}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:5px}
+.msg.sys{align-self:center;max-width:92%;font-size:13px;color:var(--ink3);text-align:center;padding:4px 8px}
+.msg p{margin:0}.msg p+p,.msg p+ul,.msg ul+p,.msg ol+p,.msg p+ol{margin-top:8px}.msg ul,.msg ol{margin:0;padding-left:20px}.msg li+li{margin-top:3px}
+.msg code{font:13px ui-monospace,Menlo,monospace;background:var(--sunken);padding:1px 5px;border-radius:5px}
+.msg a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.msg .acts{display:flex;gap:8px;margin-top:10px}
+.typing{display:inline-flex;gap:4px;padding:5px 0}.typing i{width:6px;height:6px;border-radius:50%;background:var(--ink3);animation:b 1.1s infinite}.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{opacity:.35;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+.suggest{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 10px;scrollbar-width:none}.suggest::-webkit-scrollbar{display:none}
+.suggest button{flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:13px;font-weight:500}
+.composer{display:flex;gap:8px;align-items:center;padding:8px 12px calc(env(safe-area-inset-bottom) + 10px);background:var(--bg);border-top:1px solid var(--line)}
+.composer input{flex:1;min-width:0;height:46px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:23px;padding:0 18px;font-size:16px}
+.send{width:46px;height:46px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:none}.send:disabled{opacity:.5}
+
+/* sheet + toast */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-radius:18px 18px 0 0;border:1px solid var(--line);border-bottom:0;padding:8px 16px calc(env(safe-area-inset-bottom) + 20px);transform:translateY(105%);transition:transform .26s cubic-bezier(.3,.8,.2,1);z-index:21;max-height:88%;overflow:auto;max-width:560px;margin:0 auto}
+.sheet.on{transform:none}.grab{width:36px;height:4px;border-radius:2px;background:var(--line);margin:4px auto 12px}
+.sheet h2{margin:0 0 4px;font-size:18px;letter-spacing:-.01em}.group{margin-top:18px}.group h3{margin:0 0 6px;font-size:12px;font-weight:650;color:var(--ink3);letter-spacing:.04em;text-transform:uppercase}
+.field{display:flex;gap:8px}.field .btn{min-width:88px}.field input{flex:1;min-width:0;height:42px;border:1px solid var(--line);border-radius:var(--r-s);background:var(--bg);color:var(--ink);padding:0 12px;font-size:15px}
+.pill{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--sunken);color:var(--ink2)}.pill.ok{background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok)}
+.kv{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line);color:var(--ink2);font-size:14px}.kv:first-of-type{border-top:0}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 84px);transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:all .2s;z-index:30;max-width:88%;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style></head><body>
-<header>
-  <div class="top"><div class="title">Assistant</div><button class="gear" id="gear" title="Settings">⚙</button></div>
-  <nav>
-    <button id="t-home" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>Home</button>
-    <button id="t-chat"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>Chat</button>
+<div class="app">
+  <header class="bar">
+    <div class="brand"><span class="mark"><svg class="i" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>Assistant</div>
+    <div class="bar-actions"><span id="net" class="net" title="Connected"></span>
+      <button class="icon-btn" id="settings" aria-label="Settings"><svg class="i" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></button></div>
+  </header>
+  <nav class="tabs" id="tabs" role="tablist">
+    <button role="tab" id="t-home" aria-selected="true" aria-controls="home">Home</button>
+    <button role="tab" id="t-chat" aria-selected="false" aria-controls="chat">Chat <span class="badge" id="unread"></span></button>
+    <i class="ink"></i>
   </nav>
-</header>
-<main>
-  <section id="home" class="on">
-    <div class="hello" id="hello">Hello</div><div class="date" id="date"></div>
-    <div class="grid">
-      <div class="card wide"><h3>Quick actions</h3><div class="chips" id="chips"></div></div>
-      <div class="card" id="w-weather"><h3>Weather <button class="x" id="wx-city" title="Change city" style="font-size:13px">📍 set city</button></h3><div id="wx"><div class="skeleton" style="width:60%"></div></div></div>
-      <div class="card" id="w-brief"><h3>Daily briefing</h3><div class="sub" style="margin-bottom:10px">Tasks, reminders, unread mail and charges due, summed up by your assistant.</div><button class="btn" id="brief">Brief me</button></div>
-      <div class="card"><h3>Tasks <span class="pill" id="n-tasks">0</span></h3><div id="tasks"></div><form class="add" id="addform" style="padding:0;border:0;background:none"><input id="newtask" placeholder="Add a task…" autocomplete="off"><button class="btn" style="width:auto;height:auto;border-radius:12px">Add</button></form></div>
-      <div class="card"><h3>Reminders <span class="pill" id="n-rem">0</span></h3><div id="rems"></div></div>
-      <div class="card"><h3>Inbox <span class="pill">unread</span></h3><div id="inbox"><div class="skeleton" style="width:80%"></div></div></div>
-      <div class="card"><h3>Subscriptions</h3><div id="subs"></div></div>
-      <div class="card wide" id="w-pending" style="display:none"><h3>Waiting for your OK</h3><div id="pending"></div></div>
-    </div>
-  </section>
-  <section id="chat">
-    <div id="log"></div>
-    <form id="f"><input id="q" placeholder="Ask anything…" autocomplete="off"><button aria-label="Send"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></form>
-  </section>
-</main>
+  <main>
+    <section id="home" class="on" role="tabpanel" aria-labelledby="t-home">
+      <div class="page">
+        <div class="intro"><div class="eyebrow" id="date"></div><h1 id="hello">Hello</h1><button class="wx" id="wx" aria-label="Weather"></button></div>
+        <button class="ask" id="ask"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Ask your assistant…</button>
+        <div id="approvals"></div>
+        <div class="stats">
+          <div class="stat"><b class="num" id="s-tasks">–</b><span>Open tasks</span></div>
+          <div class="stat"><b class="num" id="s-rem">–</b><span>Reminders</span></div>
+          <div class="stat"><b class="num" id="s-mail">–</b><span>Unread</span></div>
+        </div>
+        <div class="grid">
+          <div class="card"><header><h2>Up next</h2><button class="link" data-ask="Set a reminder: ">New</button></header><div id="rems"><div class="sk"></div></div></div>
+          <div class="card"><header><h2>Tasks</h2></header><div id="tasks"><div class="sk"></div></div>
+            <form class="addrow" id="addform"><input id="newtask" placeholder="Add a task" autocomplete="off" aria-label="New task"><button class="btn">Add</button></form></div>
+          <div class="card"><header><h2>Inbox</h2><button class="link" data-ask="What is new in my email that needs attention?">Summarise</button></header><div id="inbox"><div class="sk"></div></div></div>
+          <div class="card"><header><h2>Subscriptions</h2><button class="link" data-ask="Find my subscriptions and what they cost">Rescan</button></header><div id="subs"><div class="sk"></div></div></div>
+          <div class="card span2"><header><h2>Daily briefing</h2></header><div class="empty" style="padding-bottom:14px">One summary of your tasks, reminders, unread mail and charges due, with the top three things to do today.<br><button class="btn sm" id="brief" style="margin-top:12px">Brief me</button></div></div>
+        </div>
+      </div>
+    </section>
+    <section id="chat" role="tabpanel" aria-labelledby="t-chat">
+      <div id="log" aria-live="polite"></div>
+      <div class="suggest" id="suggest"></div>
+      <form class="composer" id="f"><input id="q" placeholder="Message your assistant" autocomplete="off" enterkeyhint="send" aria-label="Message"><button class="send" id="send" aria-label="Send"><svg class="i" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button></form>
+    </section>
+  </main>
+</div>
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-label="Settings" aria-modal="true">
+  <div class="grab"></div><h2>Settings</h2>
+  <div class="group"><h3>Connected services</h3>
+    <div class="kv"><span>Gmail (read-only)</span><span><span class="pill" id="gm-pill">Not connected</span></span></div>
+    <button class="btn quiet" id="gm-btn" style="width:100%;margin-top:8px">Connect Gmail</button></div>
+  <div class="group"><h3>Weather location</h3><form class="field" id="cityform"><input id="city" placeholder="City" autocomplete="off" aria-label="City"><button class="btn quiet">Save</button></form></div>
+  <div class="group"><h3>Access</h3><form class="field" id="tokform"><input id="tokin" type="password" placeholder="App token" autocomplete="off" aria-label="App token"><button class="btn quiet">Update</button></form></div>
+  <div class="group"><h3>About</h3><div class="kv"><span>Version</span><span id="ver">–</span></div></div>
+</div>
+<div id="toast" role="status"></div>
 <script>
 const $=s=>document.querySelector(s);
 const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const hp=new URLSearchParams(location.hash.slice(1));const ht=hp.get('t');if(ht)try{localStorage.tok=ht}catch{}
+const hp=new URLSearchParams(location.hash.slice(1));
+try{if(hp.get('t'))localStorage.tok=hp.get('t')}catch{}
 let tok;try{tok=localStorage.tok}catch{}
+const bridgeToken=t=>{try{window.AndroidBridge&&AndroidBridge.setToken(t||'')}catch{}};bridgeToken(tok);
+const IN_APP=!!hp.get('app');
+const ico=(d,x='')=>`<svg class="i" viewBox="0 0 24 24" ${x}>${d}</svg>`;
+const CHECK='<svg class="i" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>';
+
+/* ---------- plumbing ---------- */
+let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2600)}
+function net(ok){$('#net').classList.toggle('bad',!ok);$('#net').title=ok?'Connected':'Offline'}
 async function api(p,body,method){
   const go=()=>fetch('/api/'+p,{method:method||(body?'POST':'GET'),headers:{'content-type':'application/json',authorization:'Bearer '+tok},body:body?JSON.stringify(body):undefined});
-  let r=await go();
-  if(r.status===401){const t=prompt('Enter your app token');if(t){tok=t;try{localStorage.tok=t}catch{}r=await go()}}
-  return r.json();
+  let r;try{r=await go()}catch(e){net(false);throw e}
+  if(r.status===401){openSheet();toast('Enter your access token to continue');net(true);return{error:'unauthorized'}}
+  net(true);return r.json();
 }
-$('#gear').onclick=()=>{const t=prompt('App token',tok||'');if(t){tok=t;try{localStorage.tok=t}catch{}load()}};
 
-/* tabs */
-function tab(n){for(const x of['home','chat']){$('#t-'+x).classList.toggle('on',x===n);$('#'+x).classList.toggle('on',x===n)}
-  try{localStorage.tab=n}catch{} if(n==='home')load(); else{log.scrollTop=1e9;q.focus({preventScroll:true})}}
+/* ---------- tabs ---------- */
+function tab(n){
+  for(const x of['home','chat']){$('#t-'+x).setAttribute('aria-selected',x===n);$('#'+x).classList.toggle('on',x===n)}
+  $('#tabs').classList.toggle('chat',n==='chat');try{localStorage.tab=n}catch{}
+  if(n==='chat'){unread=0;badge();log.scrollTop=1e9}else load();
+}
 $('#t-home').onclick=()=>tab('home');$('#t-chat').onclick=()=>tab('chat');
+let unread=0;function badge(){const b=$('#unread');b.textContent=unread;b.classList.toggle('on',unread>0)}
 
-/* chat */
+/* ---------- chat ---------- */
 const log=$('#log'),q=$('#q');
-const fill=(d,t)=>{let h=esc(t).replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2">$1</a>');
- h=h.replace(/(^|[\s(])(https?:\/\/[^\s<)\]]+?)([.,;:!?]*)(?=$|[\s<)])/g,'$1<a href="$2">$2</a>$3');d.innerHTML=h};
-const add=(t,c='')=>{const d=document.createElement('div');d.className='m '+c;fill(d,t);log.appendChild(d);log.scrollTop=1e9;return d};
-function pendingCard(p,host){
-  const d=host||add('');if(!host)d.textContent='';
-  d.insertAdjacentHTML('beforeend',`<div><b>Confirm:</b> ${esc(p.tool)} ${esc(JSON.stringify(p.input))}</div>`);
-  const a=document.createElement('div');a.className='act';
-  for(const[l,ap,c]of[['Confirm',true,'ok'],['Cancel',false,'ghost']]){const b=document.createElement('button');b.className='btn '+c;b.textContent=l;
-    b.onclick=async()=>{a.remove();const x=await api('confirm/'+p.id,{approve:ap});add(ap?'Done: '+JSON.stringify(x.result):'Cancelled','sys');load()};a.appendChild(b)}
-  d.appendChild(a);
+function md(src){
+  let h=esc(src).replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2">$1</a>');
+  h=h.replace(/(^|[\s(])(https?:\/\/[^\s<)\]]+?)([.,;:!?]*)(?=$|[\s<)])/g,'$1<a href="$2">$2</a>$3');
+  h=h.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>').replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  const out=[];let list=null;
+  for(const line of h.split('\n')){
+    const li=line.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)/);
+    if(li){const kind=/^\s*\d/.test(line)?'ol':'ul';if(!list||list.kind!==kind){if(list)out.push(`</${list.kind}>`);out.push(`<${kind}>`);list={kind}}out.push(`<li>${li[1]}</li>`)}
+    else{if(list){out.push(`</${list.kind}>`);list=null}if(line.trim())out.push(`<p>${line}</p>`)}
+  }
+  if(list)out.push(`</${list.kind}>`);return out.join('');
 }
-function linkButton(url,host){const a=document.createElement('a');a.className='btn';a.style.cssText='display:inline-block;margin-top:10px;text-decoration:none';a.href=url;a.textContent='Connect Gmail ↗';host.appendChild(a);log.scrollTop=1e9}
-async function connectGmail(){const r=await api('google/link');if(r.link)location.href=r.link;else alert(r.error||'Could not create link')}
+function bubble(text,cls){const d=document.createElement('div');d.className='msg '+cls;if(cls==='me')d.textContent=text;else d.innerHTML=md(text);log.appendChild(d);log.scrollTop=1e9;return d}
+function describe(p){const i=p.input||{};return p.tool==='book_ticket'?`Book ticket ${i.ticket_id}`:`${p.tool.replace(/_/g,' ')} ${JSON.stringify(i)}`}
+function approvalButtons(p,host){
+  const a=document.createElement('div');a.className='acts';
+  for(const[l,ap,c]of[['Approve',true,'btn sm'],['Decline',false,'btn sm quiet']]){const b=document.createElement('button');b.className=c;b.textContent=l;
+    b.onclick=async()=>{b.disabled=true;const x=await api('confirm/'+p.id,{approve:ap});a.remove();bubble(ap?'Approved. '+(x.result?.status||'Done.'):'Declined.','sys');load()};a.appendChild(b)}
+  host.appendChild(a);
+}
+function linkButton(url,host){const a=document.createElement('a');a.className='btn sm';a.style.cssText='display:inline-flex;align-items:center;margin-top:10px;text-decoration:none';a.href=url;a.textContent='Connect Gmail';host.appendChild(a)}
 let busy=false;
 async function ask(t){
-  if(busy||!t.trim())return;busy=true;tab('chat');add(t,'me');
-  const w=add('','');w.innerHTML='<span class="typing"><span></span><span></span><span></span></span>';
-  try{const r=await api('chat',{message:t});fill(w,r.reply||r.error||'(no reply)');for(const p of r.pending||[])pendingCard(p);for(const l of r.links||[])linkButton(l,w)}
-  catch(e){fill(w,'Network error, try again.')}
-  busy=false;load();
+  t=String(t||'').trim();if(busy||!t)return;busy=true;$('#send').disabled=true;tab('chat');bubble(t,'me');$('#suggest').style.display='none';
+  const w=bubble('','bot');w.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';
+  try{const r=await api('chat',{message:t});
+    if(r.error&&!r.reply)w.innerHTML=md(r.error==='unauthorized'?'I could not authenticate. Update your access token in Settings.':'Something went wrong: '+r.error);
+    else{w.innerHTML=md(r.reply||'(no reply)');for(const p of r.pending||[]){w.insertAdjacentHTML('beforeend',`<p style="margin-top:8px"><strong>Needs approval:</strong> ${esc(describe(p))}</p>`);approvalButtons(p,w)}for(const l of r.links||[])linkButton(l,w)}}
+  catch{w.innerHTML=md('I could not reach the server. Check your connection and try again.')}
+  busy=false;$('#send').disabled=false;log.scrollTop=1e9;load();
 }
 $('#f').onsubmit=e=>{e.preventDefault();const t=q.value;q.value='';ask(t)};
+const SUGGEST=[['Plan my day','Plan my day using my tasks, reminders and emails'],['Unread email','What is new in my email that needs attention?'],['Find subscriptions','Find my subscriptions and what they cost'],['Research a topic','Research this and cite sources: '],['Set a reminder','Remind me ']];
+$('#suggest').innerHTML=SUGGEST.map((s,i)=>`<button data-s="${i}">${esc(s[0])}</button>`).join('');
+$('#suggest').onclick=e=>{const i=e.target.dataset.s;if(i==null)return;const t=SUGGEST[i][1];if(t.endsWith(' ')){q.value=t;q.focus()}else ask(t)};
+$('#ask').onclick=()=>{tab('chat');q.focus()};
+document.addEventListener('click',e=>{const a=e.target.closest('[data-ask]');if(!a)return;const t=a.dataset.ask;if(t.endsWith(': ')){tab('chat');q.value=t.replace(/^Set a reminder: $/,'Remind me ');q.focus()}else ask(t)});
+$('#brief').onclick=()=>ask('Give me my daily briefing: summarise my open tasks, upcoming reminders, unread email and subscription charges due soon, then tell me the three most important things to do today.');
 
-/* home */
-const chips=[['📅 Plan my day','Plan my day using my tasks, reminders and emails'],['✉️ Check email','What is new in my email that needs attention?'],['🔁 Find subscriptions','Find my subscriptions and what they cost'],['🔎 Research…','Research this for me and cite sources: '],['⏰ Remind me…','Remind me '],['🧳 Book a ticket','Search tickets BLR to DEL']];
-$('#chips').innerHTML=chips.map((c,i)=>`<button class="chip" data-i="${i}">${c[0]}</button>`).join('');
-$('#chips').onclick=e=>{const i=e.target.dataset.i;if(i==null)return;const t=chips[i][1];if(t.endsWith(': ')||t==='Remind me '){tab('chat');q.value=t;q.focus()}else ask(t)};
-$('#brief').onclick=()=>ask('Give me my morning briefing: weather-independent. Summarise my open tasks, upcoming reminders, unread email and any subscription charges due soon, then tell me the top 3 things to do today.');
-const hr=new Date().getHours();$('#hello').textContent=(hr<12?'Good morning':hr<18?'Good afternoon':'Good evening');
+/* ---------- home ---------- */
+const hr=new Date().getHours();$('#hello').textContent=hr<12?'Good morning':hr<18?'Good afternoon':'Good evening';
 $('#date').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
-const rel=iso=>{const m=Math.round((new Date(iso)-Date.now())/60000);if(m<-1)return 'overdue';if(m<1)return 'now';if(m<60)return 'in '+m+' min';if(m<1440)return 'in '+Math.round(m/60)+' h';return new Date(iso).toLocaleDateString(undefined,{day:'numeric',month:'short'})+' '+new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})};
+const SYM={INR:'₹',USD:'$',EUR:'€',GBP:'£'};const money=(c,n)=>(SYM[c]||(c?c+' ':''))+Number(n).toLocaleString(undefined,{maximumFractionDigits:2});
+function when(iso){
+  const d=new Date(iso),now=new Date(),m=Math.round((d-now)/60000);
+  if(m<=-1)return'Overdue';if(m<1)return'Now';if(m<60)return`In ${m} min`;
+  const time=d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const days=Math.round((new Date(d.toDateString())-new Date(now.toDateString()))/864e5);
+  return days===0?`Today ${time}`:days===1?`Tomorrow ${time}`:d.toLocaleDateString(undefined,{day:'numeric',month:'short'})+' '+time;
+}
+function daysUntil(s){const d=new Date(s);if(isNaN(d))return null;return Math.round((new Date(d.toDateString())-new Date(new Date().toDateString()))/864e5)}
+let lastHome=null;
 async function load(){
   let h;try{h=await api('home')}catch{return}
-  if(!h||h.error)return;
-  $('#n-tasks').textContent=h.tasks.length;$('#n-rem').textContent=h.reminders.length;
-  $('#tasks').innerHTML=h.tasks.length?h.tasks.slice(0,8).map(t=>`<div class="row"><button class="check" data-task="${esc(t.id)}" aria-label="Done"></button><div class="grow"><div class="t">${esc(t.title)}</div>${t.due?`<div class="s">due ${esc(t.due)}</div>`:''}</div></div>`).join(''):'<div class="empty">Nothing to do. Nice.</div>';
-  $('#rems').innerHTML=h.reminders.length?h.reminders.map(r=>`<div class="row"><div class="grow"><div class="t">${esc(r.text)}</div><div class="s">${esc(rel(r.when))}</div></div><button class="x" data-rem="${esc(r.id)}" aria-label="Dismiss">✕</button></div>`).join(''):'<div class="empty">No reminders. Ask me to set one.</div>';
-  const subs=(h.subscriptions||[]).slice().sort((a,b)=>String(a.next_charge||'z').localeCompare(String(b.next_charge||'z')));
+  if(!h||h.error)return;lastHome=h;
+  $('#s-tasks').textContent=h.tasks.length;$('#s-rem').textContent=h.reminders.length;
+  $('#approvals').innerHTML='';
+  for(const p of h.pending){const d=document.createElement('div');d.className='approval';d.innerHTML=`<h2>Needs your approval</h2><p>${esc(describe(p))}</p>`;approvalButtons(p,d);$('#approvals').appendChild(d)}
+  $('#tasks').innerHTML=h.tasks.length?'<div class="rows">'+h.tasks.slice(0,6).map(t=>`<div class="row"><button class="check" data-task="${esc(t.id)}" aria-label="Complete ${esc(t.title)}">${CHECK}</button><div class="grow"><div class="t1">${esc(t.title)}</div>${t.due?`<div class="t2">Due ${esc(t.due)}</div>`:''}</div></div>`).join('')+'</div>':'<div class="empty">No open tasks.</div>';
+  $('#rems').innerHTML=h.reminders.length?'<div class="rows">'+h.reminders.slice(0,5).map(r=>`<div class="row"><div class="grow"><div class="t1">${esc(r.text)}</div><div class="t2 num">${esc(when(r.when))}</div></div><button class="icon-btn" style="width:34px;height:34px" data-rem="${esc(r.id)}" aria-label="Dismiss reminder">${ico('<path d="M18 6L6 18M6 6l12 12"/>')}</button></div>`).join('')+'</div>':'<div class="empty">Nothing scheduled. Ask the assistant to set a reminder.</div>';
+  const subs=(h.subscriptions||[]).slice().sort((a,b)=>String(a.next_charge||'9').localeCompare(String(b.next_charge||'9')));
   const cur=(subs.find(s=>s.currency)||{}).currency||'';
-  $('#subs').innerHTML=subs.length?`<div class="big">${esc(cur)} ${h.monthly}<span class="sub"> / month</span></div>`+subs.slice(0,4).map(s=>`<div class="row"><div class="grow"><div class="t">${esc(s.name)}</div><div class="s">${s.next_charge?'next '+esc(s.next_charge):esc(s.period||'')}</div></div><div>${s.amount?esc(s.currency||cur)+' '+esc(s.amount):''}</div></div>`).join(''):`<div class="empty">No subscriptions saved yet.</div><button class="btn ghost" id="scan">Scan my email</button>`;
-  const sc=$('#scan');if(sc)sc.onclick=()=>ask('Find my subscriptions and what they cost');
-  $('#w-pending').style.display=h.pending.length?'':'none';$('#pending').innerHTML='';
-  for(const p of h.pending){const d=document.createElement('div');d.className='row';d.style.display='block';$('#pending').appendChild(d);pendingCard(p,d)}
-  loadInbox(h.gmail);
+  $('#subs').innerHTML=subs.length?`<div class="sub-head"><div class="big num">${esc(money(cur,h.monthly))} <small>per month</small></div></div><div class="rows">`+subs.slice(0,4).map(s=>{const du=s.next_charge?daysUntil(s.next_charge):null;return`<div class="row"><div class="grow"><div class="t1">${esc(s.name)}</div><div class="t2">${s.next_charge?'Renews '+esc(new Date(s.next_charge).toLocaleDateString(undefined,{day:'numeric',month:'short'})):esc(s.period||'')}</div></div>${du!=null&&du>=0&&du<=7?`<span class="soon">${du===0?'Today':'In '+du+' d'}</span>`:''}<div class="right num">${s.amount?esc(money(s.currency||cur,s.amount)):''}</div></div>`}).join('')+'</div>':'<div class="empty">No subscriptions saved yet. The assistant can find them in your email.<br><button class="btn sm" data-ask="Find my subscriptions and what they cost">Scan email</button></div>';
+  setGmail(h.gmail);loadInbox(h.gmail);
 }
+function setGmail(on){$('#gm-pill').textContent=on?'Connected':'Not connected';$('#gm-pill').classList.toggle('ok',on);$('#gm-btn').textContent=on?'Reconnect Gmail':'Connect Gmail'}
+async function connectGmail(){const r=await api('google/link');if(r.link)location.href=r.link;else toast(r.error||'Could not create the link')}
+$('#gm-btn').onclick=connectGmail;
 async function loadInbox(connected){
   const box=$('#inbox');
-  if(!connected){box.innerHTML='<div class="empty">Gmail is not connected.</div><button class="btn" id="cg">Connect Gmail</button>';$('#cg').onclick=connectGmail;return}
-  const r=await api('inbox');
-  if(r.error){box.innerHTML=`<div class="empty">${esc(r.error)}</div><button class="btn ghost" id="cg">Reconnect Gmail</button>`;$('#cg').onclick=connectGmail;return}
-  box.innerHTML=(r.items||[]).length?r.items.map(m=>`<div class="row"><div class="grow"><div class="t">${esc(m.subject||'(no subject)')}</div><div class="s">${esc((m.from||'').replace(/<.*>/,'').trim())}</div></div></div>`).join(''):'<div class="empty">Inbox zero. Enjoy.</div>';
+  if(!connected){box.innerHTML='<div class="empty">Connect Gmail to see unread mail here.<br><button class="btn sm" id="cg">Connect Gmail</button></div>';$('#cg').onclick=connectGmail;$('#s-mail').textContent='–';return}
+  let r;try{r=await api('inbox')}catch{return}
+  if(r.error){box.innerHTML=`<div class="empty">${esc(r.error)}<br><button class="btn sm quiet" id="cg">Reconnect Gmail</button></div>`;$('#cg').onclick=connectGmail;return}
+  const items=r.items||[];$('#s-mail').textContent=items.length>=6?'6+':items.length;
+  box.innerHTML=items.length?'<div class="rows">'+items.slice(0,4).map(m=>{const from=(m.from||'').replace(/<.*>/,'').replace(/"/g,'').trim()||'Unknown';return`<div class="row"><div class="avatar">${esc(from[0].toUpperCase())}</div><div class="grow"><div class="t1">${esc(m.subject||'(no subject)')}</div><div class="t2">${esc(from)}</div></div></div>`}).join('')+'</div>':'<div class="empty">You are all caught up.</div>';
 }
 document.addEventListener('click',async e=>{
-  const t=e.target.dataset;
-  if(t.task){await api('tasks/'+t.task+'/done',{});load()}
-  if(t.rem){await api('reminders/'+t.rem+'/done',{});load()}
+  const c=e.target.closest('[data-task]');if(c){c.closest('.row').classList.add('gone');await api('tasks/'+c.dataset.task+'/done',{});setTimeout(load,180)}
+  const r=e.target.closest('[data-rem]');if(r){r.closest('.row').classList.add('gone');await api('reminders/'+r.dataset.rem+'/done',{});setTimeout(load,180)}
 });
-$('#addform').onsubmit=async e=>{e.preventDefault();const i=$('#newtask');const v=i.value.trim();if(!v)return;i.value='';await api('tasks',{title:v});load()};
+$('#addform').onsubmit=async e=>{e.preventDefault();const i=$('#newtask'),v=i.value.trim();if(!v)return;i.value='';await api('tasks',{title:v});load()};
 
-/* weather: Open-Meteo, free, no key */
-const WX={0:['☀️','Clear'],1:['🌤️','Mostly clear'],2:['⛅','Partly cloudy'],3:['☁️','Cloudy'],45:['🌫️','Fog'],48:['🌫️','Fog'],51:['🌦️','Drizzle'],53:['🌦️','Drizzle'],55:['🌦️','Drizzle'],61:['🌧️','Rain'],63:['🌧️','Rain'],65:['🌧️','Heavy rain'],71:['🌨️','Snow'],73:['🌨️','Snow'],75:['🌨️','Snow'],80:['🌦️','Showers'],81:['🌧️','Showers'],82:['⛈️','Heavy showers'],95:['⛈️','Thunderstorm'],96:['⛈️','Thunderstorm'],99:['⛈️','Thunderstorm']};
+/* ---------- weather (Open-Meteo, no key) ---------- */
+const P={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',cloud:'<path d="M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>',rain:'<path d="M16 13v8M8 13v8M12 15v8M20 16.6A5 5 0 0 0 18 7h-1.3A8 8 0 1 0 4 15.3"/>',snow:'<path d="M20 17.6A5 5 0 0 0 18 8h-1.3A8 8 0 1 0 4 16.3M8 16h.01M8 20h.01M12 18h.01M12 22h.01M16 16h.01M16 20h.01"/>',bolt:'<path d="M19 16.9A5 5 0 0 0 18 7h-1.3a8 8 0 1 0-11.6 9M13 11l-4 6h6l-4 6"/>',fog:'<path d="M5 8h14M3 12h18M6 16h12M9 20h6"/>'};
+const WX={0:['sun','Clear'],1:['sun','Mostly clear'],2:['cloud','Partly cloudy'],3:['cloud','Overcast'],45:['fog','Fog'],48:['fog','Fog'],51:['rain','Drizzle'],53:['rain','Drizzle'],55:['rain','Drizzle'],61:['rain','Rain'],63:['rain','Rain'],65:['rain','Heavy rain'],71:['snow','Snow'],73:['snow','Snow'],75:['snow','Snow'],80:['rain','Showers'],81:['rain','Showers'],82:['bolt','Heavy showers'],95:['bolt','Thunderstorm'],96:['bolt','Thunderstorm'],99:['bolt','Thunderstorm']};
 async function weather(){
-  let c;try{c=JSON.parse(localStorage.city||'null')}catch{}
-  const box=$('#wx');
-  if(!c){box.innerHTML='<div class="empty">Set your city to see the weather.</div>';return}
+  const el=$('#wx');let c;try{c=JSON.parse(localStorage.city||'null')}catch{}
+  if(!c){el.innerHTML='<span class="d" style="color:var(--accent);font-weight:600">Set location</span>';el.onclick=openSheet;return}
+  el.onclick=openSheet;
   try{
     const r=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`)).json();
-    const w=WX[r.current.weather_code]||['🌡️','—'];
-    box.innerHTML=`<div class="weather"><div class="wx">${w[0]}</div><div><div class="temp">${Math.round(r.current.temperature_2m)}°</div><div class="sub">${esc(w[1])} · ${esc(c.name)}</div><div class="sub">H ${Math.round(r.daily.temperature_2m_max[0])}° · L ${Math.round(r.daily.temperature_2m_min[0])}°</div></div></div>`;
-  }catch{box.innerHTML='<div class="empty">Weather unavailable right now.</div>'}
+    const w=WX[r.current.weather_code]||['cloud','—'];
+    el.innerHTML=`${ico(P[w[0]],'style="width:20px;height:20px"')}<span class="t num">${Math.round(r.current.temperature_2m)}°</span><span class="d">${esc(w[1])} · ${esc(c.name)} · H ${Math.round(r.daily.temperature_2m_max[0])}° L ${Math.round(r.daily.temperature_2m_min[0])}°</span>`;
+  }catch{el.innerHTML='<span class="d">Weather unavailable</span>'}
 }
-$('#wx-city').onclick=async()=>{
-  const n=prompt('Your city');if(!n)return;
-  try{const g=await(await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name='+encodeURIComponent(n))).json();
-    if(!g.results||!g.results[0]){alert('City not found');return}
-    const x=g.results[0];localStorage.city=JSON.stringify({name:x.name,lat:x.latitude,lon:x.longitude});weather()}catch{alert('Could not look up the city')}
-};
 
-/* boot */
+/* ---------- settings sheet ---------- */
+function openSheet(){$('#scrim').classList.add('on');$('#sheet').classList.add('on');try{$('#city').value=(JSON.parse(localStorage.city||'null')||{}).name||''}catch{}}
+function closeSheet(){$('#scrim').classList.remove('on');$('#sheet').classList.remove('on')}
+$('#settings').onclick=openSheet;$('#scrim').onclick=closeSheet;
+$('#ver').textContent=hp.get('v')||'web';
+$('#tokform').onsubmit=e=>{e.preventDefault();const v=$('#tokin').value.trim();if(!v)return;tok=v;try{localStorage.tok=v}catch{}bridgeToken(v);$('#tokin').value='';closeSheet();toast('Token updated');load()};
+$('#cityform').onsubmit=async e=>{e.preventDefault();const n=$('#city').value.trim();if(!n)return;
+  try{const g=await(await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name='+encodeURIComponent(n))).json();
+    if(!g.results||!g.results[0]){toast('City not found');return}
+    const x=g.results[0];localStorage.city=JSON.stringify({name:x.name,lat:x.latitude,lon:x.longitude});closeSheet();weather();toast('Location saved')}catch{toast('Could not look up that city')}};
+
+/* ---------- boot ---------- */
 (async()=>{
-  try{const h=await api('history');for(const m of h||[])add(m.content,m.role==='user'?'me':'')}catch{}
-  if(!log.children.length)add('Hi! I can set reminders, manage tasks, research the web, read your email and find subscriptions. Try a quick action on Home.','sys');
+  try{const h=await api('history');for(const m of Array.isArray(h)?h:[])bubble(m.content,m.role==='user'?'me':'bot')}catch{}
+  if(!log.children.length)bubble('I can set reminders, manage your tasks, research the web, read your email and track subscriptions. Ask me anything, or start with a suggestion below.','sys');
   let t='home';try{t=localStorage.tab||'home'}catch{}tab(t);weather();
   setInterval(()=>{if($('#home').classList.contains('on'))load()},30000);
-  setInterval(async()=>{try{const n=await api('notifications');for(const x of n||[]){add(x.title+': '+x.body,'sys');
-    try{if(!hp.get('app')&&'Notification' in window&&Notification.permission==='granted')new Notification(x.title,{body:x.body})}catch{}}
-    if(n&&n.length)load()}catch{}},15000);
-  try{if(!hp.get('app')&&'Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch{}
+  setInterval(async()=>{try{const n=await api('notifications');if(!Array.isArray(n))return;for(const x of n){bubble(`${x.title}: ${x.body}`,'sys');if(!$('#chat').classList.contains('on')){unread++;badge()}
+    try{if(!IN_APP&&'Notification' in window&&Notification.permission==='granted')new Notification(x.title,{body:x.body})}catch{}}
+    if(n.length)load()}catch{}},15000);
+  try{if(!IN_APP&&'Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch{}
 })();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
 </script></body></html>

@@ -1,48 +1,71 @@
 package com.example.assistant
+
 import android.Manifest
 import android.app.Activity
-import android.app.AlertDialog
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.Menu
+import android.view.View
+import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.EditText
-import android.widget.LinearLayout
-import androidx.work.*
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 
 class MainActivity : Activity() {
     private lateinit var web: WebView
+
+    /** Lets the web UI hand the access token to the native background service. */
+    inner class Bridge {
+        @JavascriptInterface fun setToken(t: String) { Config.saveToken(this@MainActivity, t) }
+    }
+
+    private fun startUrl(): String =
+        Config.url(this) + "#app=1&v=" + Uri.encode("${BuildConfig.APP_VERSION} (build ${BuildConfig.BUILD})") +
+            "&t=" + Uri.encode(Config.token(this))
+
+    private fun showOffline() {
+        val html = assets.open("offline.html").bufferedReader().use { it.readText() }.replace("__URL__", startUrl())
+        web.loadDataWithBaseURL("about:blank", html, "text/html", "utf-8", null)
+    }
+
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
-        requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
-        web = WebView(this).also { it.settings.javaScriptEnabled = true; it.settings.domStorageEnabled = true; it.webViewClient = object : WebViewClient() {
-            // Google blocks OAuth inside WebViews, so auth and any external link open in the real browser
-            override fun shouldOverrideUrlLoading(v: WebView, r: android.webkit.WebResourceRequest): Boolean {
+        if (android.os.Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+
+        web = WebView(this)
+        web.setBackgroundColor(getColor(R.color.surface))
+        web.overScrollMode = View.OVER_SCROLL_NEVER
+        with(web.settings) {
+            javaScriptEnabled = true; domStorageEnabled = true
+            setSupportZoom(false); builtInZoomControls = false; displayZoomControls = false
+            textZoom = 100; allowFileAccess = false; allowContentAccess = false
+        }
+        web.addJavascriptInterface(Bridge(), "AndroidBridge")
+        web.webChromeClient = WebChromeClient()
+        web.webViewClient = object : WebViewClient() {
+            // Anything that is not our own app page (Google sign-in, external links) opens in the real browser.
+            override fun shouldOverrideUrlLoading(v: WebView, r: WebResourceRequest): Boolean {
                 val u = r.url.toString()
-                val ours = u.startsWith(Config.url(this@MainActivity)) && !u.contains("/auth/")
-                if (ours) return false
-                startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, r.url)); return true
+                if (u.startsWith(Config.url(this@MainActivity)) && !u.contains("/auth/")) return false
+                startActivity(Intent(Intent.ACTION_VIEW, r.url)); return true
             }
-        }; it.webChromeClient = android.webkit.WebChromeClient() }
+            override fun onReceivedError(v: WebView, r: WebResourceRequest, e: WebResourceError) { if (r.isForMainFrame) showOffline() }
+            override fun onReceivedHttpError(v: WebView, r: WebResourceRequest, e: WebResourceResponse) { if (r.isForMainFrame && e.statusCode >= 500) showOffline() }
+        }
         setContentView(web)
-        if (Config.url(this).isEmpty() || Config.token(this).isEmpty()) askServer() else start()
-    }
-    private fun start() {
-        try { startForegroundService(android.content.Intent(this, PollService::class.java)) } catch (_: Exception) {}
-        web.loadUrl(Config.url(this) + "#app=1&t=" + Uri.encode(Config.token(this)))
+        web.loadUrl(startUrl())
+
+        try { startForegroundService(Intent(this, PollService::class.java)) } catch (_: Exception) {}
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "poll", ExistingPeriodicWorkPolicy.REPLACE, PeriodicWorkRequestBuilder<PollWorker>(15, TimeUnit.MINUTES).build())
+            "poll", ExistingPeriodicWorkPolicy.KEEP, PeriodicWorkRequestBuilder<PollWorker>(15, TimeUnit.MINUTES).build())
     }
-    private fun askServer() {
-        val u = EditText(this).apply { hint = "Server URL e.g. https://my-app.onrender.com"; setText(Config.url(context)) }
-        val t = EditText(this).apply { hint = "App token"; setText(Config.token(context)) }
-        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(48, 24, 48, 0); addView(u); addView(t) }
-        AlertDialog.Builder(this).setTitle("Connect to your server").setView(box).setCancelable(false)
-            .setPositiveButton("Connect") { _, _ -> Config.save(this, u.text.toString(), t.text.toString()); start() }.show()
-    }
-    override fun onCreateOptionsMenu(m: Menu): Boolean { m.add("Server settings"); return true }
-    override fun onOptionsItemSelected(i: android.view.MenuItem): Boolean { askServer(); return true }
-    @Deprecated("") override fun onBackPressed() { if (web.canGoBack()) web.goBack() else super.onBackPressed() }
+
+    override fun onDestroy() { web.destroy(); super.onDestroy() }
 }
