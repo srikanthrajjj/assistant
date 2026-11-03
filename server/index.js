@@ -1,7 +1,7 @@
 import express from 'express';
 import { db, save, id, connect } from './db.js';
 import { runAgent, resolvePending } from './agent.js';
-import { authUrl, exchangeCode, googleConfigured, gmailConnected, takeNonce, newState, takeState, searchEmails } from './google.js';
+import { authUrl, exchangeCode, googleConfigured, gmailConnected, takeNonce, newState, takeState, searchEmails, newConnectLink } from './google.js';
 
 export const app = express();
 app.use(express.json());
@@ -61,6 +61,7 @@ app.get('/auth/google/callback', async (req, res) => {
     res.send(`<h3>Gmail connected</h3><p>To keep it after server restarts, add this as env var <b>GOOGLE_REFRESH_TOKEN</b> in Render (or just set DATABASE_URL so it is stored automatically):</p><textarea rows=4 cols=60 readonly>${refresh}</textarea>`);
   } catch (e) { res.status(500).send('failed: ' + e.message); }
 });
+app.get('/api/google/link', (_, res) => googleConfigured() ? res.json({ link: newConnectLink() }) : res.json({ error: 'Google credentials are not set on the server yet' }));
 app.get('/api/status', (_, res) => res.json({ gmail: gmailConnected(), search: process.env.TAVILY_API_KEY ? 'tavily' : 'duckduckgo' }));
 
 // ---- proactive layer ----

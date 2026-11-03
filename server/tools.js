@@ -65,7 +65,7 @@ export const tools = [
     input_schema: { type: 'object', properties: {} },
     run: () => G.gmailConnected() ? { connected: true } : !G.googleConfigured()
       ? { connected: false, problem: 'The server owner has not set up Google credentials yet (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in the server settings). Tell the user this is a one-time setup step on the server, not something in their phone settings.' }
-      : { connected: false, link: G.newConnectLink(), instruction: 'Show this exact link to the user and ask them to open it and approve read-only Gmail access.' } },
+      : { connected: false, link: G.newConnectLink(), instruction: 'A tappable Connect Gmail button is shown to the user automatically. Do NOT write out the link. Just tell the user to tap the button and approve read-only access.' } },
   { name: 'search_tickets', confirm: false, description: 'Search available travel tickets.',
     input_schema: { type: 'object', properties: { route: { type: 'string' }, date: { type: 'string' } }, required: ['route'] },
     run: ({ route }) => TICKETS.filter(t => t.route.toLowerCase().includes(route.toLowerCase().slice(0, 3))) },

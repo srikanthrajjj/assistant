@@ -24,4 +24,8 @@ db.google = null; revoked = true;
 await assert.rejects(byName.inbox_digest.run({}), /connect Gmail again/);
 assert.equal(G.gmailConnected(), false);
 const c = await byName.connect_gmail.run({}); assert.match(c.link, /\/auth\/google\?n=/);
+process.env.MOCK_LLM = '1';
+const { runAgent } = await import('./agent.js');
+const r = await runAgent('connect gmail', { remember: false });
+assert.equal(r.links.length, 1); assert.match(r.links[0], /^https:\/\/.*\/auth\/google\?n=\d+\.[0-9a-f]{32}$/, 'link delivered as data, not typed by the model');
 console.log('GMAIL V2 OK'); process.exit(0);

@@ -105,11 +105,13 @@ function pendingCard(p,host){
     b.onclick=async()=>{a.remove();const x=await api('confirm/'+p.id,{approve:ap});add(ap?'Done: '+JSON.stringify(x.result):'Cancelled','sys');load()};a.appendChild(b)}
   d.appendChild(a);
 }
+function linkButton(url,host){const a=document.createElement('a');a.className='btn';a.style.cssText='display:inline-block;margin-top:10px;text-decoration:none';a.href=url;a.textContent='Connect Gmail ↗';host.appendChild(a);log.scrollTop=1e9}
+async function connectGmail(){const r=await api('google/link');if(r.link)location.href=r.link;else alert(r.error||'Could not create link')}
 let busy=false;
 async function ask(t){
   if(busy||!t.trim())return;busy=true;tab('chat');add(t,'me');
   const w=add('','');w.innerHTML='<span class="typing"><span></span><span></span><span></span></span>';
-  try{const r=await api('chat',{message:t});fill(w,r.reply||r.error||'(no reply)');for(const p of r.pending||[])pendingCard(p)}
+  try{const r=await api('chat',{message:t});fill(w,r.reply||r.error||'(no reply)');for(const p of r.pending||[])pendingCard(p);for(const l of r.links||[])linkButton(l,w)}
   catch(e){fill(w,'Network error, try again.')}
   busy=false;load();
 }
@@ -139,9 +141,9 @@ async function load(){
 }
 async function loadInbox(connected){
   const box=$('#inbox');
-  if(!connected){box.innerHTML='<div class="empty">Gmail is not connected.</div><button class="btn" id="cg">Connect Gmail</button>';$('#cg').onclick=()=>ask('connect gmail');return}
+  if(!connected){box.innerHTML='<div class="empty">Gmail is not connected.</div><button class="btn" id="cg">Connect Gmail</button>';$('#cg').onclick=connectGmail;return}
   const r=await api('inbox');
-  if(r.error){box.innerHTML=`<div class="empty">${esc(r.error)}</div><button class="btn ghost" id="cg">Reconnect Gmail</button>`;$('#cg').onclick=()=>ask('connect gmail');return}
+  if(r.error){box.innerHTML=`<div class="empty">${esc(r.error)}</div><button class="btn ghost" id="cg">Reconnect Gmail</button>`;$('#cg').onclick=connectGmail;return}
   box.innerHTML=(r.items||[]).length?r.items.map(m=>`<div class="row"><div class="grow"><div class="t">${esc(m.subject||'(no subject)')}</div><div class="s">${esc((m.from||'').replace(/<.*>/,'').trim())}</div></div></div>`).join(''):'<div class="empty">Inbox zero. Enjoy.</div>';
 }
 document.addEventListener('click',async e=>{

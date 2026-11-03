@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "test": "MOCK_LLM=1 node test.js && node test-gateway.js && node test-features.js && node test-db.js && node test-lock.js && node test-poll.js && node test-gmail2.js && node test-home.js"
+    "test": "MOCK_LLM=1 node test.js && node test-gateway.js && node test-features.js && node test-db.js && node test-lock.js && node test-poll.js && node test-gmail2.js && node test-home.js && node test-oauth.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",

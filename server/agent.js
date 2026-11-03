@@ -14,7 +14,7 @@ const webSearch = [];
 
 export async function runAgent(userText, { remember = true } = {}) {
   const messages = [...db.history.slice(-30), { role: 'user', content: userText }];
-  const pending = [];
+  const pending = [], links = [];
   for (let step = 0; step < 8; step++) {
     const res = await create({ model: MODEL, max_tokens: 1500, system: system(), tools: [...toolDefs, ...webSearch], messages });
     messages.push({ role: 'assistant', content: res.content });
@@ -23,7 +23,7 @@ export async function runAgent(userText, { remember = true } = {}) {
     if (!calls.length) {
       const text = res.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
       if (remember) { db.history.push({ role: 'user', content: userText }, { role: 'assistant', content: text }); db.history = db.history.slice(-60); save(); }
-      return { reply: text, pending };
+      return { reply: text, pending, links };
     }
     const results = await Promise.all(calls.map(async c => {
       const t = byName[c.name];
@@ -32,12 +32,12 @@ export async function runAgent(userText, { remember = true } = {}) {
         const p = { id: id(), tool: c.name, input: c.input }; db.pending.push(p); save(); pending.push(p);
         return { type: 'tool_result', tool_use_id: c.id, content: 'Queued. Waiting for the user to tap Confirm in the app. Tell them what you are about to do.' };
       }
-      try { return { type: 'tool_result', tool_use_id: c.id, content: JSON.stringify(await t.run(c.input)).slice(0, 12000) }; }
+      try { const out = await t.run(c.input); if (out && out.link) links.push(out.link); return { type: 'tool_result', tool_use_id: c.id, content: JSON.stringify(out).slice(0, 12000) }; }
       catch (e) { return { type: 'tool_result', tool_use_id: c.id, content: String(e), is_error: true }; }
     }));
     messages.push({ role: 'user', content: results });
   }
-  return { reply: 'I got stuck, please try rephrasing.', pending };
+  return { reply: 'I got stuck, please try rephrasing.', pending, links };
 }
 
 export async function resolvePending(pid, approve) {

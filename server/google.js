@@ -54,11 +54,18 @@ export async function readEmail(id) {
   return { id, from: hdr(m, 'from'), subject: hdr(m, 'subject'), date: hdr(m, 'date'), body: bodyText(m.payload).replace(/\s+/g, ' ').slice(0, 4000) };
 }
 
-// one-time links so the APP_TOKEN never appears in a URL
-const nonces = new Map(), states = new Map();
-const fresh = (m) => { const k = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2); m.set(k, Date.now() + 600000); return k; };
-const take = (m, k) => { const e = m.get(k); m.delete(k); return !!e && e > Date.now(); };
-export const newConnectLink = () => (process.env.PUBLIC_URL || 'https://assistant-mvp.onrender.com') + '/auth/google?n=' + fresh(nonces);
-export const takeNonce = (k) => take(nonces, k);
-export const newState = () => fresh(states);
-export const takeState = (k) => take(states, k);
+// Stateless signed links: survive server restarts/redeploys and work on any instance. Valid for 10 minutes.
+import crypto from 'node:crypto';
+const sigKey = () => (process.env.APP_TOKEN || 'dev-token') + '|' + (process.env.GOOGLE_CLIENT_SECRET || '');
+const sign = (kind, exp) => crypto.createHmac('sha256', sigKey()).update(kind + exp).digest('hex').slice(0, 32);
+const make = (kind) => { const exp = Date.now() + 600000; return exp + '.' + sign(kind, exp); };
+const check = (kind, v) => {
+  const [exp, sig] = String(v || '').split('.');
+  if (!exp || !sig || !(Number(exp) > Date.now())) return false;
+  const want = Buffer.from(sign(kind, exp)), got = Buffer.from(sig);
+  return want.length === got.length && crypto.timingSafeEqual(want, got);
+};
+export const newConnectLink = () => (process.env.PUBLIC_URL || 'https://assistant-mvp.onrender.com') + '/auth/google?n=' + make('nonce');
+export const takeNonce = (k) => check('nonce', k);
+export const newState = () => make('state');
+export const takeState = (k) => check('state', k);

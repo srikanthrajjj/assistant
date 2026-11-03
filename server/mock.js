@@ -7,6 +7,7 @@ export async function mockCreate({ messages }) {
   if (typeof last.content !== 'string') return txt('Done: ' + last.content.map(r => r.content).join(' | ').slice(0, 1500));
   const q = last.content.toLowerCase();
   if (q.includes('remind')) return tu('add_reminder', { text: 'mock reminder', when: new Date(Date.now() + 1000).toISOString() });
+  if (q.includes('gmail')) return tu('connect_gmail', {});
   if (q.includes('task')) return tu('add_task', { title: 'mock task' });
   if (q.includes('email')) return tu('search_emails', { query: '*' });
   if (q.includes('book')) return tu('book_ticket', { ticket_id: 't2' });
