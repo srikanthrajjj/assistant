@@ -31,6 +31,7 @@ app.get('/api/home', (_, res) => {
     reminders: db.reminders.filter(r => !r.done).sort((a, b) => new Date(a.when) - new Date(b.when)).slice(0, 8),
     subscriptions: subs, monthly: Math.round(monthly * 100) / 100,
     gmail: gmailConnected(), pending: db.pending,
+    layout: db.layout, note: db.note || '', countdown: db.countdown || null,
     recent: [...new Map(db.history.filter(m => m.role === 'user').reverse().map(m => [m.content, { text: m.content, t: m.t || null }])).values()].slice(0, 6),
   });
 });
@@ -48,6 +49,20 @@ app.post('/api/tasks', (req, res) => { const title = String(req.body.title || ''
 app.post('/api/tasks/:id/done', (req, res) => { const t = db.tasks.find(x => x.id === req.params.id); if (!t) return res.status(404).json({ error: 'not found' }); t.done = true; save(); res.json(t); });
 app.post('/api/tasks/:id/reopen', (req, res) => { const t = db.tasks.find(x => x.id === req.params.id); if (!t) return res.status(404).json({ error: 'not found' }); t.done = false; save(); res.json(t); });
 app.post('/api/reminders/:id/done', (req, res) => { const r = db.reminders.find(x => x.id === req.params.id); if (!r) return res.status(404).json({ error: 'not found' }); r.done = true; save(); res.json(r); });
+// ---- customizable Home ----
+const WIDGET_IDS = ['tiles', 'quick', 'tasks', 'rems', 'inbox', 'subs', 'recent', 'weather', 'note', 'timer', 'countdown'];
+app.post('/api/layout', (req, res) => {
+  const l = req.body.layout;
+  if (!Array.isArray(l) || l.length > 20 || new Set(l).size !== l.length || !l.every(x => WIDGET_IDS.includes(x))) return res.status(400).json({ error: 'invalid layout' });
+  db.layout = l; save(); res.json({ layout: l });
+});
+app.post('/api/note', (req, res) => { db.note = String(req.body.text ?? '').slice(0, 5000); save(); res.json({ ok: true }); });
+app.post('/api/countdown', (req, res) => {
+  const { title, date } = req.body || {};
+  if (date == null || date === '') { db.countdown = null; save(); return res.json({ countdown: null }); }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date)) || isNaN(new Date(date))) return res.status(400).json({ error: 'invalid date' });
+  db.countdown = { title: String(title || 'Countdown').slice(0, 80), date }; save(); res.json({ countdown: db.countdown });
+});
 app.get('/api/history', (_, res) => res.json(db.history.slice(-40)));
 app.post('/api/history/clear', (_, res) => { db.history = []; save(); res.json({ ok: true }); });
 app.post('/api/memory', (req, res) => { db.memory = String(req.body.memory || ''); save(); res.json({ ok: true }); });

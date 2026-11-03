@@ -16,4 +16,13 @@ db.history.push({ role: 'user', content: 'hi', t: 1 }, { role: 'assistant', cont
 assert.equal((await call('/api/history'))[0].content, 'hi');
 assert.deepEqual((await call('/api/home')).recent.map(r => r.text), ['weather?', 'hi'], 'recent chats: newest first, de-duplicated');
 await call('/api/history/clear', 'POST'); assert.equal((await call('/api/history')).length, 0, 'conversation cleared');
+// customizable Home
+assert.equal((await call('/api/home')).layout, null, 'default layout is decided by the client');
+assert.deepEqual((await call('/api/layout', 'POST', { layout: ['tasks', 'note', 'weather'] })).layout, ['tasks', 'note', 'weather']);
+assert.deepEqual((await call('/api/home')).layout, ['tasks', 'note', 'weather'], 'layout persisted');
+for (const bad of [{ layout: ['nope'] }, { layout: ['tasks', 'tasks'] }, { layout: 'tasks' }, {}]) assert.equal((await fetch(base + '/api/layout', { method: 'POST', headers: h, body: JSON.stringify(bad) })).status, 400, 'rejects ' + JSON.stringify(bad));
+await call('/api/note', 'POST', { text: 'buy milk' }); assert.equal((await call('/api/home')).note, 'buy milk');
+assert.equal((await call('/api/countdown', 'POST', { title: 'Trip', date: '2026-12-01' })).countdown.title, 'Trip');
+assert.equal((await fetch(base + '/api/countdown', { method: 'POST', headers: h, body: JSON.stringify({ title: 'x', date: 'soon' }) })).status, 400);
+await call('/api/countdown', 'POST', { date: '' }); assert.equal((await call('/api/home')).countdown, null, 'countdown cleared');
 console.log('HOME API OK'); process.exit(0);

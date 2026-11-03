@@ -40,7 +40,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .seg button[aria-selected=true]{color:var(--navy-ink)}
 .dotbadge{width:8px;height:8px;border-radius:50%;background:var(--accent);display:none}.dotbadge.on{display:block}
 
-main{flex:1;min-height:0;position:relative;overflow:hidden}
+main{flex:1;min-height:0;position:relative;overflow:hidden;overflow:clip}
 #panes{display:flex;width:200%;height:100%;transition:transform .34s cubic-bezier(.3,.8,.2,1)}
 .pane{width:50%;height:100%;overflow:auto;-webkit-overflow-scrolling:touch;position:relative}
 
@@ -137,6 +137,33 @@ button.item:active{filter:brightness(.97)}
 #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 84px);transform:translate(-50%,20px);background:var(--navy);color:var(--navy-ink);padding:11px 16px;border-radius:14px;font-size:14px;opacity:0;pointer-events:none;transition:all .22s;z-index:30;max-width:90%;display:flex;gap:14px;align-items:center;white-space:nowrap}
 #toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}#toast button{background:none;border:0;color:var(--navy-ink);font-weight:700;text-decoration:underline;padding:0}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* widgets + edit mode */
+.customize{display:block;margin:4px auto 0;background:none;border:0;color:var(--ink3);font-weight:600;font-size:14px;padding:10px 16px}
+.block>h2 .wsmall{font-size:13px;font-weight:500;color:var(--ink3);margin-left:6px}
+.ctl{display:none;gap:2px}.editing .ctl{display:flex}
+.ctl button{width:32px;height:32px;border-radius:50%;border:0;background:var(--tint);color:var(--ink2);display:grid;place-items:center}.ctl svg{width:16px;height:16px}
+.editing .block{border-radius:22px;outline:2px dashed color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:6px;margin-bottom:28px}
+.editing .block .wbody{pointer-events:none;opacity:.78}
+.editbar{position:absolute;left:12px;right:12px;bottom:8px;z-index:4;display:none;gap:8px;justify-content:center;padding:8px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow),0 0 0 1px var(--line)}
+.editbar.on{display:flex}.editbar .pillbtn{height:42px;flex:1}
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qgrid button{border:0;border-radius:18px;min-height:58px;padding:10px 14px;text-align:left;font-weight:650;font-size:14px}
+.q4{background:var(--rose);color:var(--rose-ink)}
+.note{width:100%;min-height:110px;border:0;border-radius:18px;background:var(--tint);color:var(--ink);padding:14px 16px;font:inherit;resize:vertical}
+.note::placeholder{color:var(--ink3)}
+.wxnow{display:flex;align-items:center;gap:14px;background:var(--tint);border-radius:18px;padding:14px 16px}
+.wxbig{font-size:38px;font-weight:680;letter-spacing:-.03em;line-height:1}
+.wxrow{display:flex;justify-content:space-between;margin-top:8px;background:var(--tint);border-radius:18px;padding:12px 8px}
+.wxh{flex:1;text-align:center;font-size:12px;color:var(--ink3);display:flex;flex-direction:column;align-items:center;gap:6px}.wxh b{font-size:14px;color:var(--ink);font-weight:650}.wxh svg{width:18px;height:18px;color:var(--ink2)}
+.timer{background:var(--tint);border-radius:18px;padding:16px;text-align:center}
+.tnum{font-size:46px;font-weight:680;letter-spacing:-.03em;line-height:1.1}
+.tlens{display:flex;justify-content:center;gap:8px;margin:8px 0 12px}.tlens button{border:0;border-radius:999px;height:32px;padding:0 14px;background:var(--surface);color:var(--ink2);font-weight:600;font-size:13px}.tlens button.on{background:var(--sky);color:var(--sky-ink)}
+.tbtns{display:flex;gap:8px;justify-content:center}
+.cd{display:flex;align-items:center;gap:14px;background:var(--tint);border-radius:18px;padding:14px 16px}.cd .grow{flex:1;min-width:0}
+.cdnum{font-size:40px;font-weight:680;letter-spacing:-.03em;line-height:1;min-width:56px}
+.cdform{display:grid;gap:8px;background:var(--tint);border-radius:18px;padding:12px}.cdform input{height:42px;border:0;border-radius:12px;background:var(--surface);color:var(--ink);padding:0 12px;font:inherit}
+.gal{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:18px;background:var(--tint)}.gal .grow{flex:1;min-width:0}.gal .t2x{white-space:normal}
 </style></head><body>
 <div class="app">
   <header class="top">
@@ -154,14 +181,7 @@ button.item:active{filter:brightness(.97)}
         <div class="hero"><div class="eyebrow" id="date"></div><h1 id="hello">Hello</h1><div id="smart"></div></div>
         <div id="callout"></div><div id="approvals"></div>
         <div class="rail" id="rail"></div>
-        <div class="panel">
-          <div class="block" id="b-recent" style="display:none"><h2>Recent</h2><div class="list" id="recent"></div></div>
-          <div class="block" id="b-tasks"><h2>Tasks <small id="n-tasks"></small></h2><div class="list" id="tasks"><div class="sk"></div></div>
-            <form class="addrow" id="addform"><input id="newtask" placeholder="Add a task" autocomplete="off" aria-label="New task"></form></div>
-          <div class="block" id="b-rems"><h2>Up next</h2><div class="list" id="rems"><div class="sk"></div></div></div>
-          <div class="block" id="b-inbox"><h2>Inbox <small id="n-mail"></small></h2><div class="list" id="inbox"><div class="sk"></div></div></div>
-          <div class="block" id="b-subs"><h2>Subscriptions <small id="n-subs"></small></h2><div class="list" id="subs"><div class="sk"></div></div></div>
-        </div>
+        <div class="panel" id="panel"></div>
       </section>
       <section class="pane" id="chat" role="tabpanel" aria-labelledby="t-chat">
         <div class="chathead">
@@ -173,6 +193,7 @@ button.item:active{filter:brightness(.97)}
         <div id="log" aria-live="polite"></div>
       </section>
     </div>
+    <div class="editbar" id="editbar"><button class="pillbtn" id="addw">Add widget</button><button class="pillbtn ghost" id="donew">Done</button></div>
     <div class="peek" id="peek" aria-live="polite"><div class="ph"><span>Assistant</span><span><button id="peek-open">Open in chat</button><button id="peek-x" aria-label="Dismiss">✕</button></span></div><div class="body" id="peekbody"></div></div>
   </main>
   <form class="composer" id="f">
@@ -191,6 +212,7 @@ button.item:active{filter:brightness(.97)}
   <div class="group"><h3>Access</h3><form class="field" id="tokform"><input id="tokin" type="password" placeholder="App token" autocomplete="off" aria-label="App token"><button class="pillbtn" style="height:44px">Update</button></form></div>
   <div class="group"><h3>About</h3><div class="kv"><span>Version</span><span id="ver">–</span></div></div>
 </div>
+<div class="sheet" id="gallery" role="dialog" aria-label="Add a widget" aria-modal="true"><div class="grab"></div><h2>Add a widget</h2><div class="list" id="gallerylist" style="margin-top:14px"></div></div>
 <div id="toast" role="status"></div>
 <script>
 const $=s=>document.querySelector(s);
@@ -224,7 +246,7 @@ async function api(p,body,method){
 /* ---------- tabs (tap or swipe) ---------- */
 let tabName='home',unread=0;
 function go(n){
-  tabName=n;$('#panes').style.transform=n==='chat'?'translateX(-50%)':'none';$('#seg').classList.toggle('chat',n==='chat');
+  $('#main').scrollLeft=0;tabName=n;$('#panes').style.transform=n==='chat'?'translateX(-50%)':'none';$('#seg').classList.toggle('chat',n==='chat');
   for(const x of['home','chat']){$('#t-'+x).setAttribute('aria-selected',x===n);$('#'+x).inert=x!==n}
   $('#q').placeholder=n==='chat'?'Message':'Ask or add anything';ls.set('tab',n);
   if(n==='chat'){unread=0;badge();hidePeek();setTimeout(()=>{$('#chat').scrollTop=1e9},60)}else load();
@@ -349,66 +371,173 @@ function tiles(h,mail){
     ['t5','list',h.tasks.length+' open',h.tasks[0]?h.tasks[0].title:'Tasks','b-tasks']];
   $('#rail').innerHTML=ts.map(t=>`<button class="tile ${t[0]}" data-go="${t[4]}"><span class="ti">${ico(t[1])}</span><span class="tv">${t[2]}</span><span class="tl">${esc(t[3])}</span></button>`).join('');
 }
-let lastMail=null,lastHome=null;
+let lastMail=null,lastHome=null,lastInbox=null,editing=false,layout=[],cdEditing=false;
+const DEFAULT_LAYOUT=['tiles','recent','tasks','rems','inbox','subs'];
+const WIDGETS={
+  tiles:{title:'Today tiles',desc:'Weather, next reminder, mail and money at a glance',icon:'list'},
+  quick:{title:'Quick asks',desc:'One-tap shortcuts for common requests',icon:'bolt'},
+  tasks:{title:'Tasks',desc:'Your to-do list with instant add',icon:'check'},
+  rems:{title:'Up next',desc:'Upcoming reminders',icon:'clock'},
+  inbox:{title:'Inbox',desc:'Unread mail from Gmail',icon:'mail'},
+  subs:{title:'Subscriptions',desc:'What you pay for and when it renews',icon:'repeat'},
+  recent:{title:'Recent',desc:'Jump back into past requests',icon:'bolt'},
+  weather:{title:'Weather',desc:'Now and the next few hours',icon:'sun'},
+  note:{title:'Notes',desc:'A scratchpad that saves itself',icon:'list'},
+  timer:{title:'Focus timer',desc:'Distraction-free focus sessions',icon:'clock'},
+  countdown:{title:'Countdown',desc:'Days until something that matters',icon:'clock'}};
+
+/* focus timer (client side, survives reloads) */
+let timerState=(()=>{try{return JSON.parse(ls.get('timer'))||{len:25,running:false,end:0,left:25*60}}catch{return{len:25,running:false,end:0,left:25*60}}})();
+const saveTimer=()=>ls.set('timer',JSON.stringify(timerState));
+const timerLeft=()=>timerState.running?Math.max(0,Math.round((timerState.end-Date.now())/1000)):timerState.left;
+const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+function timerTick(){
+  if(timerState.running&&timerLeft()<=0){timerState.running=false;timerState.left=0;saveTimer();toast('Focus session complete');vib();setTimeout(vib,200);setTimeout(vib,400);const g=$('#tgo');if(g)g.textContent='Start'}
+  const el=$('#tnum');if(el)el.textContent=fmt(timerLeft());
+}
+setInterval(timerTick,500);
+
+const R={
+  tasks:h=>({small:h.tasks.length||'',html:'<div class="list">'+(h.tasks.length?h.tasks.slice(0,6).map(t=>`<div class="item"><button class="check" data-task="${esc(t.id)}" aria-label="Complete ${esc(t.title)}">${ico('check')}</button><div class="grow"><div class="t1x">${esc(t.title)}</div>${t.due?`<div class="t2x">Due ${esc(t.due)}</div>`:''}</div></div>`).join(''):'<div class="quiet">Nothing to do right now.</div>')+'</div><form class="addrow addform"><input class="newtask" placeholder="Add a task" autocomplete="off" aria-label="New task"></form>'}),
+  rems:h=>({html:'<div class="list">'+(h.reminders.length?h.reminders.slice(0,5).map(r=>`<div class="item"><div class="grow"><div class="t1x">${esc(r.text)}</div><div class="t2x num">${esc(when(r.when))}</div></div><button class="icon-btn" style="width:34px;height:34px" data-rem="${esc(r.id)}" aria-label="Dismiss reminder">${ico('x','style="width:16px;height:16px"')}</button></div>`).join(''):'<div class="quiet">Nothing scheduled. Just say “remind me…” below.</div>')+'</div>'}),
+  inbox:h=>{
+    if(!h.gmail)return{html:'<div class="quiet">Not connected. <button class="linkbtn" data-connect>Connect Gmail</button></div>'};
+    if(lastInbox==null)return{html:'<div class="list"><div class="sk"></div></div>'};
+    if(lastInbox.error)return{html:'<div class="quiet">Gmail needs to be reconnected. <button class="linkbtn" data-connect>Reconnect</button></div>'};
+    const it=lastInbox.items||[];
+    return{small:it.length?(it.length>=6?'6+':it.length)+' unread':'',html:it.length?'<div class="list">'+it.slice(0,4).map(m=>{const from=(m.from||'').replace(/<.*>/,'').replace(/"/g,'').trim()||'Unknown';return`<div class="item"><div class="avatar">${esc(from[0].toUpperCase())}</div><div class="grow"><div class="t1x">${esc(m.subject||'(no subject)')}</div><div class="t2x">${esc(from)}</div></div></div>`}).join('')+'</div>':'<div class="quiet">You are all caught up.</div>'};
+  },
+  subs:h=>{
+    const subs=(h.subscriptions||[]).slice().sort((a,b)=>String(a.next_charge||'9').localeCompare(String(b.next_charge||'9')));const cur=(subs.find(s=>s.currency)||{}).currency||'';
+    return{small:subs.length?money(cur,h.monthly)+'/mo':'',html:subs.length?'<div class="list">'+subs.slice(0,4).map(s=>{const d=s.next_charge?dayDiff(s.next_charge):null;return`<div class="item"><div class="grow"><div class="t1x">${esc(s.name)}</div><div class="t2x">${s.next_charge?'Renews '+esc(new Date(s.next_charge).toLocaleDateString(undefined,{day:'numeric',month:'short'})):esc(s.period||'')}</div></div>${d!=null&&d>=0&&d<=7?`<span class="soon">${d===0?'Today':'In '+d+' d'}</span>`:''}<div class="right num">${s.amount?esc(money(s.currency||cur,s.amount)):''}</div></div>`}).join('')+'</div>':`<div class="quiet">Nothing tracked yet. ${h.gmail?'<button class="linkbtn" data-ask="Find my subscriptions and what they cost">Look through my email</button>':'Connect Gmail and I will find them.'}</div>`};
+  },
+  recent:h=>({html:(h.recent&&h.recent.length)?'<div class="list">'+h.recent.slice(0,3).map((r,i)=>`<button class="item" data-recent="${i}"><span class="chipicon">${ico('bolt')}</span><span class="grow"><span class="t1x">${esc(r.text)}</span></span></button>`).join('')+'</div>':'<div class="quiet">Your recent requests will show up here.</div>'}),
+  quick:()=>({html:'<div class="qgrid">'+[['q1','Plan my day','ask','Plan my day using my tasks, reminders and emails'],['q2','Unread email','ask','What is new in my email that needs attention?'],['q3','Subscriptions','ask','Find my subscriptions and what they cost'],['q4','Research…','fill','Research this and cite sources: ']].map(q=>`<button class="${q[0]}" data-${q[2]}="${esc(q[3])}">${q[1]}</button>`).join('')+'</div>'}),
+  weather:()=>({html:'<div id="wxw">'+wxHTML()+'</div>'}),
+  note:h=>({html:`<textarea class="note" placeholder="Jot something down…" aria-label="Notes">${esc(h.note||'')}</textarea>`}),
+  timer:()=>({html:`<div class="timer"><div class="tnum num" id="tnum">${fmt(timerLeft())}</div><div class="tlens">${[15,25,45].map(m=>`<button data-tlen="${m}" class="${timerState.len===m?'on':''}">${m} min</button>`).join('')}</div><div class="tbtns"><button class="pillbtn" id="tgo">${timerState.running?'Pause':'Start'}</button><button class="pillbtn ghost" id="treset">Reset</button></div></div>`}),
+  countdown:h=>{
+    const c=h.countdown;
+    if(c&&!cdEditing){const d=dayDiff(c.date);return{html:`<div class="cd"><div class="cdnum num">${Math.abs(d)}</div><div class="grow"><div class="t1x">${esc(c.title)}</div><div class="t2x">${d<0?(Math.abs(d)===1?'day ago':'days ago'):d===0?'Today':(d===1?'day to go':'days to go')} · ${esc(new Date(c.date+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}))}</div></div><button class="linkbtn" data-cdedit>Edit</button></div>`}}
+    return{html:`<form class="cdform"><input name="title" placeholder="What are you counting down to?" value="${esc(c?c.title:'')}" aria-label="Title"><input name="date" type="date" value="${esc(c?c.date:'')}" aria-label="Date" required><div class="tbtns"><button class="pillbtn">Save</button>${c?'<button type="button" class="pillbtn ghost" data-cdclear>Remove</button>':''}</div></form>`};
+  }};
+function blockHTML(id,h){
+  const w=WIDGETS[id],r=R[id](h);
+  const ctl=`<span class="ctl"><button data-mv="-1" data-id="${id}" aria-label="Move ${esc(w.title)} up"><svg class="i" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button><button data-mv="1" data-id="${id}" aria-label="Move ${esc(w.title)} down"><svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><button data-rm="${id}" aria-label="Remove ${esc(w.title)}"><svg class="i" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></span>`;
+  return`<section class="block" data-w="${id}" id="b-${id}"><h2><span>${esc(w.title)}<span class="wsmall">${esc(r.small??'')}</span></span>${ctl}</h2><div class="wbody">${r.html}</div></section>`;
+}
+function refreshBlock(id){const b=$(`[data-w="${id}"]`);if(!b||!lastHome)return;const r=R[id](lastHome);b.querySelector('.wbody').innerHTML=r.html;b.querySelector('.wsmall').textContent=r.small??''}
+
 function renderHome(h){
-  lastHome=h;$('#n-tasks').textContent=h.tasks.length||'';
+  lastHome=h;layout=(Array.isArray(h.layout)&&h.layout.length?h.layout:DEFAULT_LAYOUT).filter(id=>WIDGETS[id]);
   const sl=smartLine(h);$('#smart').innerHTML=sl.act?`<button class="smart" data-ask="${esc(sl.act)}">${esc(sl.text)} <span>· ${esc(sl.label)} →</span></button>`:`<div class="smart">${esc(sl.text)}</div>`;
   $('#approvals').innerHTML='';for(const p of h.pending){const d=document.createElement('div');d.className='approval';d.innerHTML='<span style="font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">Needs your OK</span>';approvalUI(p,d);$('#approvals').appendChild(d)}
   const showCall=!h.gmail&&!ls.get('gsDismissed');
   $('#callout').innerHTML=showCall?'<div class="callout"><div class="grow"><b>Connect your Gmail</b><span>See unread mail and track subscriptions.</span></div><button class="pillbtn" id="co-go">Connect</button><button class="icon-btn" id="co-x" aria-label="Dismiss" style="width:32px;height:32px">'+ico('x','style="width:16px;height:16px"')+'</button></div>':'';
   if(showCall){$('#co-go').onclick=connectGmail;$('#co-x').onclick=()=>{ls.set('gsDismissed','1');renderHome(h)}}
-  $('#b-recent').style.display=h.recent&&h.recent.length?'':'none';
-  $('#recent').innerHTML=(h.recent||[]).slice(0,3).map((r,i)=>`<button class="item" data-recent="${i}"><span class="chipicon">${ico('bolt')}</span><span class="grow"><span class="t1x">${esc(r.text)}</span></span></button>`).join('');
-  window.__recent=h.recent||[];
-  $('#tasks').innerHTML=h.tasks.length?h.tasks.slice(0,6).map(t=>`<div class="item"><button class="check" data-task="${esc(t.id)}" aria-label="Complete ${esc(t.title)}">${ico('check')}</button><div class="grow"><div class="t1x">${esc(t.title)}</div>${t.due?`<div class="t2x">Due ${esc(t.due)}</div>`:''}</div></div>`).join(''):'<div class="quiet">Nothing to do right now.</div>';
-  $('#rems').innerHTML=h.reminders.length?h.reminders.slice(0,5).map(r=>`<div class="item"><div class="grow"><div class="t1x">${esc(r.text)}</div><div class="t2x num">${esc(when(r.when))}</div></div><button class="icon-btn" style="width:34px;height:34px" data-rem="${esc(r.id)}" aria-label="Dismiss reminder">${ico('x','style="width:16px;height:16px"')}</button></div>`).join(''):'<div class="quiet">Nothing scheduled. Just say “remind me…” below.</div>';
-  const subs=(h.subscriptions||[]).slice().sort((a,b)=>String(a.next_charge||'9').localeCompare(String(b.next_charge||'9')));const cur=(subs.find(s=>s.currency)||{}).currency||'';
-  $('#n-subs').textContent=subs.length?money(cur,h.monthly)+'/mo':'';
-  $('#subs').innerHTML=subs.length?subs.slice(0,4).map(s=>{const d=s.next_charge?dayDiff(s.next_charge):null;return`<div class="item"><div class="grow"><div class="t1x">${esc(s.name)}</div><div class="t2x">${s.next_charge?'Renews '+esc(new Date(s.next_charge).toLocaleDateString(undefined,{day:'numeric',month:'short'})):esc(s.period||'')}</div></div>${d!=null&&d>=0&&d<=7?`<span class="soon">${d===0?'Today':'In '+d+' d'}</span>`:''}<div class="right num">${s.amount?esc(money(s.currency||cur,s.amount)):''}</div></div>`}).join(''):`<div class="quiet">Nothing tracked yet. ${h.gmail?'<button class="linkbtn" data-ask="Find my subscriptions and what they cost">Look through my email</button>':'Connect Gmail and I will find them.'}</div>`;
-  setGmail(h.gmail);tiles(h,h.gmail?lastMail:null);loadInbox(h);
+  window.__recent=h.recent||[];setGmail(h.gmail);
+  $('#rail').style.display=layout.includes('tiles')?'':'none';tiles(h,h.gmail?lastMail:null);
+  const ids=layout.filter(x=>x!=='tiles');
+  $('#panel').innerHTML=ids.map(id=>blockHTML(id,h)).join('')+(editing?'':'<button class="customize" id="customize">Customize Home</button>');
+  $('#panel').classList.toggle('editing',editing);$('#editbar').classList.toggle('on',editing);
+  if(layout.includes('weather'))wxRefresh();
+  if(h.gmail&&layout.includes('inbox'))loadInbox(h);
+  timerTick();
+}
+async function loadInbox(h){
+  let r;try{r=await api('inbox')}catch{return}
+  if(!r||r.connected===false)return;lastInbox=r.error?{error:r.error}:{items:r.items||[]};
+  if(lastInbox.items){lastMail=lastInbox.items.length;tiles(h,lastMail)}refreshBlock('inbox');
+}
+/* scroll only the Home pane (scrollIntoView would also nudge the hidden sideways container) */
+function scrollHomeTo(el,offset=70){const pane=$('#home');pane.scrollTo({top:pane.scrollTop+el.getBoundingClientRect().top-pane.getBoundingClientRect().top-offset,behavior:'smooth'})}
+async function load(){
+  let h;try{h=await api('home')}catch{return}
+  if(!h||h.error)return;ls.set('homeCache',JSON.stringify(h));
+  const ae=document.activeElement;if(editing||(ae&&ae.closest&&ae.closest('#panel')&&/INPUT|TEXTAREA/.test(ae.tagName))){lastHome=h;return}  // never re-render under the user's fingers
+  renderHome(h);
 }
 function setGmail(on){$('#gm-pill').textContent=on?'Connected':'Not connected';$('#gm-pill').classList.toggle('ok',on);$('#gm-btn').textContent=on?'Reconnect Gmail':'Connect Gmail'}
 async function connectGmail(){const r=await api('google/link');if(r.link)location.href=r.link;else toast(r.error||'Could not create the link')}
 $('#gm-btn').onclick=connectGmail;
-async function loadInbox(h){
-  const box=$('#inbox');
-  if(!h.gmail){box.innerHTML='<div class="quiet">Not connected. <button class="linkbtn" id="cg">Connect Gmail</button></div>';$('#cg').onclick=connectGmail;$('#n-mail').textContent='';return}
-  let r;try{r=await api('inbox')}catch{return}
-  if(r.error){box.innerHTML='<div class="quiet">Gmail needs to be reconnected. <button class="linkbtn" id="cg">Reconnect</button></div>';$('#cg').onclick=connectGmail;return}
-  const items=r.items||[];lastMail=items.length;$('#n-mail').textContent=items.length?(items.length>=6?'6+':items.length)+' unread':'';tiles(h,lastMail);
-  box.innerHTML=items.length?items.slice(0,4).map(m=>{const from=(m.from||'').replace(/<.*>/,'').replace(/"/g,'').trim()||'Unknown';return`<div class="item"><div class="avatar">${esc(from[0].toUpperCase())}</div><div class="grow"><div class="t1x">${esc(m.subject||'(no subject)')}</div><div class="t2x">${esc(from)}</div></div></div>`}).join(''):'<div class="quiet">You are all caught up.</div>';
-}
-async function load(){
-  let h;try{h=await api('home')}catch{return}
-  if(!h||h.error)return;ls.set('homeCache',JSON.stringify(h));renderHome(h);
-}
 /* instant first paint from the last known state */
 try{const c=JSON.parse(ls.get('homeCache')||'null');if(c&&c.tasks)renderHome(c)}catch{}
 
+/* ---------- customize: add / remove / reorder ---------- */
+const saveLayout=()=>{if(lastHome){lastHome.layout=layout;ls.set('homeCache',JSON.stringify(lastHome))}api('layout',{layout})};
+function startEdit(){if(editing||!lastHome)return;editing=true;vib();renderHome(lastHome)}
+function stopEdit(){editing=false;renderHome(lastHome);load()}
+function mv(id,dir){const ids=layout.filter(x=>x!=='tiles'),i=ids.indexOf(id),j=i+dir;if(i<0||j<0||j>=ids.length)return;[ids[i],ids[j]]=[ids[j],ids[i]];layout=(layout.includes('tiles')?['tiles']:[]).concat(ids);saveLayout();renderHome(lastHome)}
+function rm(id){layout=layout.filter(x=>x!==id);saveLayout();renderHome(lastHome);toast('Removed '+WIDGETS[id].title,{label:'Undo',fn:()=>{layout.push(id);saveLayout();renderHome(lastHome)}})}
+function openGallery(){
+  const free=Object.keys(WIDGETS).filter(id=>!layout.includes(id));
+  $('#gallerylist').innerHTML=free.length?free.map(id=>`<div class="gal"><span class="chipicon">${ico(WIDGETS[id].icon)}</span><div class="grow"><div class="t1x">${esc(WIDGETS[id].title)}</div><div class="t2x">${esc(WIDGETS[id].desc)}</div></div><button class="pillbtn" data-addwidget="${id}">Add</button></div>`).join(''):'<div class="quiet">Every widget is already on your Home.</div>';
+  $('#scrim').classList.add('on');$('#gallery').classList.add('on');
+}
+let lp=null;
+$('#panel').addEventListener('pointerdown',e=>{if(editing||!e.target.closest('.block>h2'))return;clearTimeout(lp);lp=setTimeout(startEdit,550)});
+for(const ev of['pointerup','pointercancel','touchmove','contextmenu'])$('#panel').addEventListener(ev,()=>clearTimeout(lp),{passive:true});
+$('#home').addEventListener('scroll',()=>clearTimeout(lp),{passive:true});
+$('#addw').onclick=openGallery;$('#donew').onclick=stopEdit;
+
+/* ---------- delegated events ---------- */
 document.addEventListener('click',async e=>{
-  const ak=e.target.closest('[data-ask]');if(ak){ask(ak.dataset.ask);return}
-  const g=e.target.closest('[data-go]');if(g){if(g.dataset.go==='settings')openSheet();else $('#'+g.dataset.go).scrollIntoView({behavior:'smooth',block:'start'});return}
-  const rc=e.target.closest('[data-recent]');if(rc){const r=window.__recent[+rc.dataset.recent];if(r){$('#q').value=r.text;syncComposer();$('#q').focus()}return}
-  const c=e.target.closest('[data-task]');if(c){const id=c.dataset.task;c.closest('.item').classList.add('gone');vib();api('tasks/'+id+'/done',{});
+  const t=e.target,q=s=>t.closest(s);
+  let el;
+  if(el=q('[data-ask]')){ask(el.dataset.ask);return}
+  if(el=q('[data-fill]')){go('home');$('#q').value=el.dataset.fill;syncComposer();$('#q').focus();return}
+  if(el=q('[data-connect]')){connectGmail();return}
+  if(el=q('[data-go]')){if(el.dataset.go==='settings')openSheet();else{const b=$('#'+el.dataset.go);if(b)scrollHomeTo(b);else toast('Add that widget from Customize Home')}return}
+  if(el=q('[data-recent]')){const r=window.__recent[+el.dataset.recent];if(r){$('#q').value=r.text;syncComposer();$('#q').focus()}return}
+  if(el=q('[data-task]')){const id=el.dataset.task;el.closest('.item').classList.add('gone');vib();api('tasks/'+id+'/done',{});
     toast('Task completed',{label:'Undo',fn:async()=>{await api('tasks/'+id+'/reopen',{});load()}});setTimeout(load,260);return}
-  const r=e.target.closest('[data-rem]');if(r){r.closest('.item').classList.add('gone');vib();api('reminders/'+r.dataset.rem+'/done',{});setTimeout(load,260)}
+  if(el=q('[data-rem]')){el.closest('.item').classList.add('gone');vib();api('reminders/'+el.dataset.rem+'/done',{});setTimeout(load,260);return}
+  if(q('#customize')){startEdit();return}
+  if(el=q('[data-mv]')){mv(el.dataset.id,+el.dataset.mv);return}
+  if(el=q('[data-rm]')){rm(el.dataset.rm);return}
+  if(el=q('[data-addwidget]')){const id=el.dataset.addwidget;if(!layout.includes(id))layout.push(id);saveLayout();closeSheet();renderHome(lastHome);const b=$('#b-'+id);if(b)scrollHomeTo(b,120);return}
+  if(el=q('[data-tlen]')){timerState={len:+el.dataset.tlen,running:false,end:0,left:+el.dataset.tlen*60};saveTimer();refreshBlock('timer');return}
+  if(q('#tgo')){if(timerState.running){timerState.left=timerLeft();timerState.running=false}else{if(timerLeft()<=0)timerState.left=timerState.len*60;timerState.end=Date.now()+timerState.left*1000;timerState.running=true}saveTimer();refreshBlock('timer');return}
+  if(q('#treset')){timerState={len:timerState.len,running:false,end:0,left:timerState.len*60};saveTimer();refreshBlock('timer');return}
+  if(q('[data-cdedit]')){cdEditing=true;refreshBlock('countdown');return}
+  if(q('[data-cdclear]')){cdEditing=false;await api('countdown',{date:''});if(lastHome)lastHome.countdown=null;refreshBlock('countdown');return}
 });
-$('#addform').onsubmit=async e=>{e.preventDefault();const i=$('#newtask'),v=i.value.trim();if(!v)return;i.value='';vib();await api('tasks',{title:v});load()};
+document.addEventListener('submit',async e=>{
+  const f=e.target;
+  if(f.classList.contains('addform')){e.preventDefault();const i=f.querySelector('input'),v=i.value.trim();if(!v)return;i.value='';vib();await api('tasks',{title:v});i.blur();load();return}
+  if(f.classList.contains('cdform')){e.preventDefault();const d=new FormData(f);const r=await api('countdown',{title:d.get('title'),date:d.get('date')});if(r.countdown){cdEditing=false;if(lastHome)lastHome.countdown=r.countdown;refreshBlock('countdown')}else toast('Pick a valid date')}
+});
+let noteT;document.addEventListener('input',e=>{if(!e.target.classList.contains('note'))return;clearTimeout(noteT);const v=e.target.value;noteT=setTimeout(()=>{api('note',{text:v});if(lastHome)lastHome.note=v},700)});
 
 /* ---------- weather (Open-Meteo, no key) ---------- */
 const WX={0:['sun','Clear'],1:['sun','Mostly clear'],2:['cloud','Partly cloudy'],3:['cloud','Overcast'],45:['fog','Fog'],48:['fog','Fog'],51:['rain','Drizzle'],53:['rain','Drizzle'],55:['rain','Drizzle'],61:['rain','Rain'],63:['rain','Rain'],65:['rain','Heavy rain'],71:['snow','Snow'],73:['snow','Snow'],75:['snow','Snow'],80:['rain','Showers'],81:['rain','Showers'],82:['bolt2','Heavy showers'],95:['bolt2','Thunderstorm'],96:['bolt2','Thunderstorm'],99:['bolt2','Thunderstorm']};
+let wxFull=null,wxAt=0;
+function wxHTML(){
+  if(!wxFull)return'<div class="quiet">Loading…</div>';
+  if(wxFull.none)return'<div class="quiet">Set your city to see the forecast. <button class="linkbtn" data-go="settings">Set location</button></div>';
+  if(wxFull.err)return'<div class="quiet">Weather is unavailable right now.</div>';
+  const w=WX[wxFull.code]||['cloud','—'];
+  return`<div class="wxnow"><div class="wxbig num">${wxFull.temp}°</div><div class="grow" style="flex:1;min-width:0"><div class="t1x">${esc(w[1])}</div><div class="t2x">${esc(wxFull.city)} · H ${wxFull.hi}° L ${wxFull.lo}°</div></div>${ico(w[0],'style="width:34px;height:34px"')}</div><div class="wxrow">${wxFull.hours.map(x=>`<div class="wxh"><span>${esc(x.t)}</span>${ico((WX[x.code]||['cloud'])[0])}<b class="num">${x.temp}°</b></div>`).join('')}</div>`;
+}
+function wxRefresh(){const el=$('#wxw');if(el)el.innerHTML=wxHTML()}
 async function weather(){
   let c;try{c=JSON.parse(ls.get('city')||'null')}catch{}
-  if(!c){wxTile={v:'Set city',l:'Weather',icon:'pin'}}
-  else try{const r=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current=temperature_2m,weather_code&timezone=auto&forecast_days=1`)).json();
-    const w=WX[r.current.weather_code]||['cloud','—'];wxTile={v:Math.round(r.current.temperature_2m)+'°',l:`${w[1]} · ${c.name}`,icon:w[0]}}
-  catch{wxTile={v:'—',l:'Weather unavailable',icon:'cloud'}}
-  if(lastHome)tiles(lastHome,lastHome.gmail?lastMail:null);
+  if(!c){wxTile={v:'Set city',l:'Weather',icon:'pin'};wxFull={none:true}}
+  else if(wxFull&&!wxFull.none&&!wxFull.err&&Date.now()-wxAt<600000&&wxFull.city===c.name){/* fresh enough */}
+  else try{
+    const r=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=2`)).json();
+    const cur=r.current,w=WX[cur.weather_code]||['cloud','—'];
+    const now=String(cur.time).slice(0,13)+':00',i=r.hourly.time.findIndex(t=>t>=now);
+    const hours=r.hourly.time.slice(i+1,i+7).map((t,k)=>({t:new Date(t).toLocaleTimeString([],{hour:'numeric'}),temp:Math.round(r.hourly.temperature_2m[i+1+k]),code:r.hourly.weather_code[i+1+k]}));
+    wxFull={temp:Math.round(cur.temperature_2m),code:cur.weather_code,city:c.name,hi:Math.round(r.daily.temperature_2m_max[0]),lo:Math.round(r.daily.temperature_2m_min[0]),hours};wxAt=Date.now();
+    wxTile={v:wxFull.temp+'°',l:`${w[1]} · ${c.name}`,icon:w[0]};
+  }catch{wxTile={v:'—',l:'Weather unavailable',icon:'cloud'};wxFull={err:true}}
+  if(lastHome)tiles(lastHome,lastHome.gmail?lastMail:null);wxRefresh();
 }
 
 /* ---------- settings ---------- */
 function openSheet(){$('#scrim').classList.add('on');$('#sheet').classList.add('on');try{$('#city').value=(JSON.parse(ls.get('city')||'null')||{}).name||''}catch{}}
-function closeSheet(){$('#scrim').classList.remove('on');$('#sheet').classList.remove('on')}
+function closeSheet(){$('#scrim').classList.remove('on');$('#sheet').classList.remove('on');$('#gallery').classList.remove('on')}
 $('#settings').onclick=openSheet;$('#scrim').onclick=closeSheet;$('#ver').textContent=hp.get('v')||'web';
 $('#tokform').onsubmit=e=>{e.preventDefault();const v=$('#tokin').value.trim();if(!v)return;tok=v;ls.set('tok',v);bridgeToken(v);$('#tokin').value='';closeSheet();toast('Token updated');load()};
 $('#cityform').onsubmit=async e=>{e.preventDefault();const n=$('#city').value.trim();if(!n)return;
