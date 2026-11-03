@@ -6,8 +6,9 @@ import { authUrl, exchangeCode, googleConfigured, gmailConnected } from './googl
 export const app = express();
 app.use(express.json());
 const TOKEN = process.env.APP_TOKEN || 'dev-token';
+const LOCKED = !!process.env.RENDER && !process.env.APP_TOKEN;   // never run publicly with the default password
 app.use(express.static('public'));
-app.use('/api', (req, res, next) => (req.get('authorization') === `Bearer ${TOKEN}` ? next() : res.status(401).json({ error: 'unauthorized' })));
+app.use('/api', (req, res, next) => LOCKED ? res.status(503).json({ error: 'Server locked: set APP_TOKEN in Render > Environment' }) : (req.get('authorization') === `Bearer ${TOKEN}` ? next() : res.status(401).json({ error: 'unauthorized' })));
 
 app.post('/api/chat', async (req, res) => {
   try { res.json(await runAgent(String(req.body.message || ''))); }
@@ -20,6 +21,7 @@ app.get('/api/notifications', (_, res) => { const n = db.notifications; db.notif
 
 // ---- Gmail connect (open /auth/google?token=APP_TOKEN in a browser once) ----
 app.get('/auth/google', (req, res) => {
+  if (LOCKED) return res.status(503).send('Set APP_TOKEN first');
   if (req.query.token !== TOKEN) return res.status(401).send('bad token');
   if (!googleConfigured()) return res.status(500).send('Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET first');
   res.redirect(authUrl(TOKEN.length + ':' + Buffer.from(TOKEN).toString('base64url')));
