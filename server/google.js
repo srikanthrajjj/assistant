@@ -13,8 +13,8 @@ export const authUrl = (state) => 'https://accounts.google.com/o/oauth2/v2/auth?
 export async function exchangeCode(code) {
   const r = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ code, client_id: cfg().id, client_secret: cfg().secret, redirect_uri: cfg().redirect, grant_type: 'authorization_code' }) });
-  const j = await r.json(); if (!r.ok) throw new Error('google: ' + JSON.stringify(j));
-  broken = false; db.google = { refresh: j.refresh_token || refreshToken(), access: j.access_token, exp: Date.now() + j.expires_in * 1000 - 60000 }; save();
+  const j = await r.json(); if (!r.ok) { const e = new Error('google: ' + (j.error_description || j.error)); e.code = j.error; throw e; }
+  lastError = null; broken = false; db.google = { refresh: j.refresh_token || refreshToken(), access: j.access_token, exp: Date.now() + j.expires_in * 1000 - 60000 }; save();
   return j.refresh_token;
 }
 async function accessToken() {
@@ -31,7 +31,12 @@ async function accessToken() {
 }
 const gmail = async (path) => {
   const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/' + path, { headers: { authorization: 'Bearer ' + await accessToken() } });
-  if (!r.ok) throw new Error('gmail ' + r.status); return r.json();
+  if (!r.ok) {
+    let reason = ''; try { const j = await r.json(); reason = j.error?.errors?.[0]?.reason || j.error?.status || ''; } catch {}
+    const e = new Error(hintFor(r.status === 403 && /accessNotConfigured|SERVICE_DISABLED/i.test(reason) ? 'gmail_api_disabled' : r.status === 403 ? 'gmail_forbidden' : 'gmail_' + r.status));
+    e.code = 'gmail_' + r.status; setGoogleError({ code: e.code, message: e.message }); throw e;
+  }
+  return r.json();
 };
 const hdr = (m, n) => m.payload?.headers?.find(h => h.name.toLowerCase() === n)?.value || '';
 
@@ -69,3 +74,26 @@ export const newConnectLink = () => (process.env.PUBLIC_URL || 'https://assistan
 export const takeNonce = (k) => check('nonce', k);
 export const newState = () => make('state');
 export const takeState = (k) => check('state', k);
+
+// ---- diagnostics: say exactly what is wrong and how to fix it ----
+let lastError = null;
+export function hintFor(code) {
+  const hints = {
+    access_denied: 'Google blocked this account. In Google Cloud open APIs & Services, then OAuth consent screen, then Audience, and add your Gmail address under Test users. Then try again.',
+    redirect_uri_mismatch: 'The redirect link in Google Cloud does not match. Add exactly this under Credentials, your OAuth client, Authorized redirect URIs: ' + cfg().redirect,
+    invalid_client: 'The Client ID or Client secret in Render does not match your Google OAuth client. Copy both again with no spaces.',
+    unauthorized_client: 'The Client ID or Client secret in Render does not match your Google OAuth client. Copy both again with no spaces.',
+    invalid_grant: 'That sign-in code expired or was already used. Start again from the app.',
+    gmail_api_disabled: 'The Gmail API is not turned on in your Google Cloud project. Open APIs & Services, then Library, search for Gmail API and click Enable.',
+    gmail_forbidden: 'Google refused access to Gmail. Reconnect and make sure you allow read access to your mail when Google asks.',
+    gmail_401: 'The Gmail login expired. Reconnect Gmail.',
+    bad_link: 'This link is invalid or expired. Open the app and tap Connect Gmail again.',
+  };
+  return hints[code] || ('Something went wrong (' + code + '). Try connecting again.');
+}
+export function setGoogleError(e) { lastError = e ? { at: Date.now(), code: e.code, hint: e.hint || hintFor(e.code), message: e.message } : null; }
+export function diagnose() {
+  const c = cfg();
+  return { clientId: !!c.id, clientSecret: !!c.secret, redirectUri: c.redirect, publicUrlSet: !!process.env.PUBLIC_URL,
+    connected: gmailConnected(), persistent: !!process.env.DATABASE_URL || !!process.env.GOOGLE_REFRESH_TOKEN, lastError };
+}

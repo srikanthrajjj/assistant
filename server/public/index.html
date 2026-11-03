@@ -247,6 +247,10 @@ body::before{content:"";position:fixed;inset:-12%;z-index:0;pointer-events:none;
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   :root{--surface:rgba(255,255,255,.9)}.panel{background:rgba(255,255,255,.7)}.sheet,.menu,.peek,.composer{background:rgba(255,255,255,.95)}
 }
+.dg{margin-top:10px;padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.4;border:1px solid var(--line);background:var(--tint)}
+.dg.bad{background:rgba(250,225,200,.6);color:var(--sand-ink)}.dg.warn{background:rgba(250,235,200,.6);color:var(--sand-ink)}
+.dg code{display:block;margin-top:6px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.6);color:var(--ink);font:12px ui-monospace,monospace;overflow-wrap:anywhere}
+.dg button{margin-top:6px;background:none;border:0;color:var(--accent);font-weight:650;padding:0}
 </style></head><body>
 <div class="app">
   <header class="top">
@@ -290,7 +294,7 @@ body::before{content:"";position:fixed;inset:-12%;z-index:0;pointer-events:none;
   <div class="grab"></div><h2>Settings</h2>
   <div class="group"><h3>Connected services</h3>
     <div class="kv"><span>Gmail (read-only)</span><span class="pill" id="gm-pill">Not connected</span></div>
-    <button class="pillbtn" id="gm-btn" style="width:100%;height:44px">Connect Gmail</button></div>
+    <button class="pillbtn" id="gm-btn" style="width:100%;height:44px">Connect Gmail</button><div id="gm-diag"></div></div>
   <div class="group"><h3>Weather location</h3><form class="field" id="cityform"><input id="city" placeholder="City" autocomplete="off" aria-label="City"><button class="pillbtn" style="height:44px">Save</button></form></div>
   <div class="group"><h3>Access</h3><form class="field" id="tokform"><input id="tokin" type="password" placeholder="App token" autocomplete="off" aria-label="App token"><button class="pillbtn" style="height:44px">Update</button></form></div>
   <div class="group"><h3>About</h3><div class="kv"><span>Version</span><span id="ver">–</span></div></div>
@@ -486,7 +490,7 @@ const R={
   inbox:h=>{
     if(!h.gmail)return{html:'<div class="quiet">Not connected. <button class="linkbtn" data-connect>Connect Gmail</button></div>'};
     if(lastInbox==null)return{html:'<div class="list"><div class="sk"></div></div>'};
-    if(lastInbox.error)return{html:'<div class="quiet">Gmail needs to be reconnected. <button class="linkbtn" data-connect>Reconnect</button></div>'};
+    if(lastInbox.error)return{html:'<div class="quiet">'+esc(lastInbox.error)+' <button class="linkbtn" data-connect>Reconnect</button></div>'};
     const it=lastInbox.items||[];
     return{small:it.length?(it.length>=6?'6+':it.length)+' unread':'',html:it.length?'<div class="list">'+it.slice(0,4).map(m=>{const from=(m.from||'').replace(/<.*>/,'').replace(/"/g,'').trim()||'Unknown';return`<div class="item"><div class="avatar">${esc(from[0].toUpperCase())}</div><div class="grow"><div class="t1x">${esc(m.subject||'(no subject)')}</div><div class="t2x">${esc(from)}</div></div></div>`}).join('')+'</div>':'<div class="quiet">You are all caught up.</div>'};
   },
@@ -541,7 +545,17 @@ async function load(){
   renderHome(h);
 }
 function setGmail(on){$('#gm-pill').textContent=on?'Connected':'Not connected';$('#gm-pill').classList.toggle('ok',on);$('#gm-btn').textContent=on?'Reconnect Gmail':'Connect Gmail'}
-async function connectGmail(){const r=await api('google/link');if(r.link)location.href=r.link;else toast(r.error||'Could not create the link')}
+async function connectGmail(){const r=await api('google/link');if(r.link)location.href=r.link;else{toast(r.error||'Could not create the link');openSheet()}}
+async function gmailDiag(){
+  const box=$('#gm-diag');if(!box)return;let d;try{d=await api('google/status')}catch{return}if(!d||d.error){return}
+  const out=[];
+  if(!d.clientId||!d.clientSecret)out.push(['bad','Google credentials are missing on the server. Add <b>GOOGLE_CLIENT_ID</b> and <b>GOOGLE_CLIENT_SECRET</b> in Render, then redeploy.']);
+  if(d.lastError)out.push(['bad','<b>Last attempt failed.</b> '+esc(d.lastError.hint)]);
+  if(d.connected&&!d.persistent)out.push(['warn','Gmail will disconnect whenever the server restarts. Add <b>DATABASE_URL</b> in Render to keep it connected.']);
+  if(!d.connected&&d.clientId&&d.clientSecret)out.push(['','Google Cloud needs this exact redirect link on your OAuth client:<code id="ruri">'+esc(d.redirectUri)+'</code><button id="copyruri">Copy link</button>']);
+  box.innerHTML=out.map(o=>`<div class="dg ${o[0]}">${o[1]}</div>`).join('');
+  const c=$('#copyruri');if(c)c.onclick=async()=>{try{await navigator.clipboard.writeText(d.redirectUri);toast('Copied')}catch{toast('Select and copy the link above')}};
+}
 $('#gm-btn').onclick=connectGmail;
 /* instant first paint from the last known state */
 try{const c=JSON.parse(ls.get('homeCache')||'null');if(c&&c.tasks)renderHome(c)}catch{}
@@ -619,7 +633,7 @@ async function weather(){
 }
 
 /* ---------- settings ---------- */
-function openSheet(){$('#scrim').classList.add('on');$('#sheet').classList.add('on');try{$('#city').value=(JSON.parse(ls.get('city')||'null')||{}).name||''}catch{}}
+function openSheet(){$('#scrim').classList.add('on');$('#sheet').classList.add('on');gmailDiag();try{$('#city').value=(JSON.parse(ls.get('city')||'null')||{}).name||''}catch{}}
 function closeSheet(){$('#scrim').classList.remove('on');$('#sheet').classList.remove('on');$('#gallery').classList.remove('on')}
 $('#settings').onclick=openSheet;$('#scrim').onclick=closeSheet;$('#ver').textContent=hp.get('v')||'web';
 $('#tokform').onsubmit=e=>{e.preventDefault();const v=$('#tokin').value.trim();if(!v)return;tok=v;ls.set('tok',v);bridgeToken(v);$('#tokin').value='';closeSheet();toast('Token updated');load()};

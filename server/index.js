@@ -1,7 +1,7 @@
 import express from 'express';
 import { db, save, id, connect } from './db.js';
 import { runAgent, resolvePending } from './agent.js';
-import { authUrl, exchangeCode, googleConfigured, gmailConnected, takeNonce, newState, takeState, searchEmails, newConnectLink } from './google.js';
+import { authUrl, exchangeCode, googleConfigured, gmailConnected, takeNonce, newState, takeState, searchEmails, newConnectLink, diagnose, setGoogleError, hintFor } from './google.js';
 
 export const app = express();
 app.disable('x-powered-by');
@@ -42,7 +42,7 @@ app.get('/api/inbox', async (_, res) => {
     if (!inboxCache.data || Date.now() - inboxCache.at > 120000)
       inboxCache = { at: Date.now(), data: await searchEmails('is:unread newer_than:3d -category:promotions -category:social -category:forums', 6) };
     res.json({ connected: true, items: inboxCache.data.map(m => ({ id: m.id, from: m.from, subject: m.subject, snippet: m.snippet })) });
-  } catch (e) { res.json({ connected: true, error: e.message }); }
+  } catch (e) { res.json({ connected: true, error: e.message, code: e.code || null }); }
 });
 app.post('/api/tasks', (req, res) => { const title = String(req.body.title || '').trim().slice(0, 200); if (!title) return res.status(400).json({ error: 'title required' });
   const t = { id: id(), title, due: null, done: false }; db.tasks.push(t); save(); res.json(t); });
@@ -74,17 +74,25 @@ app.get('/api/notifications', async (req, res) => {   // ?wait=25 = long-poll: r
 
 // ---- Gmail connect (open /auth/google?token=APP_TOKEN in a browser once) ----
 app.get('/auth/google', (req, res) => {
-  if (LOCKED || !takeNonce(String(req.query.n))) return res.status(401).send('This link is invalid or expired. Ask the assistant to "connect gmail" again.');
+  if (LOCKED || !takeNonce(String(req.query.n))) { setGoogleError({ code: 'bad_link' }); return res.status(401).send(authPage(false, 'Link expired', `<p>${hintFor('bad_link')}</p>`)); }
   if (!googleConfigured()) return res.status(500).send('Google credentials are not set on the server');
   res.redirect(authUrl(newState()));
 });
+const authPage = (ok, title, body) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title>
+<style>:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:grid;place-items:center;font:16px/1.5 system-ui,sans-serif;background:#dfe9fb;color:#0f1b2d;padding:24px}
+@media(prefers-color-scheme:dark){body{background:#070b16;color:#e8eef9}}.c{max-width:420px;width:100%;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.9);border-radius:24px;padding:28px;box-shadow:0 20px 60px rgba(40,64,128,.2)}
+@media(prefers-color-scheme:dark){.c{background:rgba(30,42,72,.7);border-color:rgba(255,255,255,.14)}}h1{margin:0 0 10px;font-size:22px}p{margin:0 0 12px}.ok{color:#1e8a5a}.bad{color:#b25e09}small{opacity:.7}
+textarea{width:100%;font:12px ui-monospace,monospace;border-radius:12px;border:1px solid rgba(0,0,0,.15);padding:10px}</style><div class="c"><h1 class="${ok ? 'ok' : 'bad'}">${title}</h1>${body}</div>`;
 app.get('/auth/google/callback', async (req, res) => {
   try {
-    if (!takeState(String(req.query.state))) return res.status(400).send('bad or expired state');
+    if (req.query.error) { const code = String(req.query.error); setGoogleError({ code }); return res.status(400).send(authPage(false, 'Google did not allow access', `<p>${hintFor(code)}</p><p><small>Google said: ${code.replace(/[<>&]/g, '')}</small></p>`)); }
+    if (!takeState(String(req.query.state))) { setGoogleError({ code: 'bad_link' }); return res.status(400).send(authPage(false, 'Link expired', `<p>${hintFor('bad_link')}</p>`)); }
     const refresh = await exchangeCode(String(req.query.code));
-    res.send(`<h3>Gmail connected</h3><p>To keep it after server restarts, add this as env var <b>GOOGLE_REFRESH_TOKEN</b> in Render (or just set DATABASE_URL so it is stored automatically):</p><textarea rows=4 cols=60 readonly>${refresh}</textarea>`);
-  } catch (e) { res.status(500).send('failed: ' + e.message); }
+    const keep = process.env.DATABASE_URL || process.env.GOOGLE_REFRESH_TOKEN ? '' : `<p class="bad"><b>One more step:</b> your server has no database, so this login is forgotten whenever it restarts. Add this as the <b>GOOGLE_REFRESH_TOKEN</b> environment variable in Render (or set up DATABASE_URL).</p><textarea rows="4" readonly>${refresh}</textarea>`;
+    res.send(authPage(true, 'Gmail connected', `<p>You can close this tab and go back to the app.</p>${keep}`));
+  } catch (e) { setGoogleError({ code: e.code || 'exchange_failed', message: e.message }); res.status(500).send(authPage(false, 'Could not finish connecting', `<p>${hintFor(e.code || 'exchange_failed')}</p><p><small>${String(e.message).replace(/[<>&]/g, '')}</small></p>`)); }
 });
+app.get('/api/google/status', (_, res) => res.json(diagnose()));
 app.get('/api/google/link', (_, res) => googleConfigured() ? res.json({ link: newConnectLink() }) : res.json({ error: 'Google credentials are not set on the server yet' }));
 app.get('/api/status', (_, res) => res.json({ gmail: gmailConnected(), search: process.env.TAVILY_API_KEY ? 'tavily' : 'duckduckgo' }));
 
